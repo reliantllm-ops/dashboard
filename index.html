@@ -35,6 +35,21 @@
       <div class="sidebar-panel">
         <div class="panel-header">
           <div>
+            <p class="section-label">Sync</p>
+            <h2>Firebase</h2>
+          </div>
+          <span class="pill" id="sync-mode">Local mode</span>
+        </div>
+        <p class="sync-copy" id="auth-status">Connect Firebase config to enable shared pages and Google sign-in.</p>
+        <div class="sidebar-actions">
+          <button class="button button-primary" id="sign-in-button" type="button">Sign in</button>
+          <button class="button button-secondary" id="sign-out-button" type="button">Sign out</button>
+        </div>
+      </div>
+
+      <div class="sidebar-panel">
+        <div class="panel-header">
+          <div>
             <p class="section-label">Library</p>
             <h2>Pages</h2>
           </div>
@@ -140,6 +155,6 @@
     </main>
   </div>
 
-  <script src="workspace.js"></script>
+  <script type="module" src="firebase-workspace.js"></script>
 </body>
 </html>

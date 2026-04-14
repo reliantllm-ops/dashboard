@@ -1,49 +1,38 @@
-# Engineering Dashboard
+# Engineering Workspace
 
-A lightweight static dashboard for tracking engineering delivery, reliability, and team health.
+An editable engineering workspace with wiki-style pages, Firebase-ready cloud sync, and Google sign-in support.
 
 ## Open locally
 
 Open `index.html` directly in a browser.
 
-## Deploy
+## Firebase setup
 
-### Vercel
+1. Create a Firebase project and add a Web app
+2. Enable `Authentication` with the `Google` provider
+3. Enable `Cloud Firestore`
+4. Copy your Firebase web config into `firebase-config.js` and set `enabled: true`
+5. Deploy Firestore rules from `firestore.rules`
+6. Deploy Hosting using `firebase.json`
 
-1. Create a new Vercel project from this folder or from a Git repository containing these files
-2. Framework preset: `Other`
-3. Build command: leave blank
-4. Output directory: `.`
+Official docs used for this setup:
 
-### Netlify
+- Firebase web app setup: https://firebase.google.com/docs/web/setup
+- Google sign-in for web apps: https://firebase.google.com/docs/auth/web/google-signin
+- Firestore web usage: https://firebase.google.com/docs/firestore/quickstart
+- Firebase Hosting setup: https://firebase.google.com/docs/hosting
 
-1. Create a new site from this folder or from a Git repository containing these files
-2. Build command: leave blank
-3. Publish directory: `.`
+## Current capabilities
 
-### GitHub Pages
-
-This repo includes `.github/workflows/deploy-pages.yml`, so GitHub Pages can deploy automatically from GitHub Actions.
-
-1. Create a GitHub repository and push this folder to the `main` branch
-2. In GitHub, open `Settings` -> `Pages`
-3. Under `Build and deployment`, set `Source` to `GitHub Actions`
-4. Push to `main` and wait for the `Deploy GitHub Pages` workflow to finish
-
-Your site will then be available at:
-
-`https://<your-github-username>.github.io/<repository-name>/`
-
-## Current sections
-
-- Executive metrics
-- Deployment throughput
-- Incident watch
-- Squad operating view
-- Engineering risks
+- Create, duplicate, edit, and delete pages
+- Search page titles, tags, summaries, and body text
+- Render markdown-style preview
+- Local fallback when Firebase is not configured
+- Shared cloud-backed pages when Firebase is configured and the user is signed in
 
 ## Next steps
 
-- Replace mock data in `app.js` with API responses from Jira, GitHub, PagerDuty, and CI systems
-- Add filtering by team, time window, and environment
-- Add authentication if the dashboard will expose internal engineering data
+- Add page-level permissions and role-based editing
+- Add attachments and richer formatting
+- Add dashboards backed by Jira, GitHub, PagerDuty, and CI data
+- Add a left-nav hierarchy for spaces, folders, and page trees

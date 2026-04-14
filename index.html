@@ -48,32 +48,10 @@
     <main class="content-column">
       <section class="route-toolbar card" id="route-toolbar">
         <div class="route-actions">
-          <a class="button button-secondary" id="workspace-link" href="#/">Workspace</a>
           <a class="button button-secondary" id="page-route-link" href="#/page/home-dashboard">Open page</a>
           <a class="button button-secondary" id="edit-route-link" href="#/edit/home-dashboard">Edit page</a>
         </div>
         <p class="route-copy" id="route-copy">Each page can now be opened directly with its own URL.</p>
-      </section>
-
-      <section class="hero-strip">
-        <div>
-          <p class="eyebrow">Workspace Overview</p>
-          <h2>Use this as your engineering front door.</h2>
-          <p class="hero-copy">
-            Create reference pages for architecture, incidents, ownership, release notes,
-            and team rituals. The home page stays pinned as a dashboard summary.
-          </p>
-        </div>
-        <div class="hero-summary">
-          <div class="summary-stat">
-            <span class="summary-label">Stored pages</span>
-            <strong id="hero-page-count">0</strong>
-          </div>
-          <div class="summary-stat">
-            <span class="summary-label">Last saved</span>
-            <strong id="last-saved-label">Not yet</strong>
-          </div>
-        </div>
       </section>
 
       <section class="workspace-grid">
@@ -125,29 +103,6 @@
               <button class="button button-secondary" id="delete-page-button" type="button">Delete page</button>
             </div>
           </form>
-        </article>
-
-        <article class="card preview-card">
-          <div class="panel-header">
-            <div>
-              <p class="section-label">Preview</p>
-              <h2>Rendered page</h2>
-            </div>
-            <div class="preview-header-actions">
-              <span class="pill" id="active-category-pill">Dashboard</span>
-              <a class="button button-secondary button-inline" id="open-page-inline-link" href="#/page/home-dashboard">Open direct page</a>
-            </div>
-          </div>
-
-          <div class="preview-meta">
-            <div>
-              <p class="preview-title" id="preview-title">Engineering Command Center</p>
-              <p class="preview-summary" id="preview-summary"></p>
-            </div>
-            <div class="preview-badges" id="preview-tags"></div>
-          </div>
-
-          <div class="preview-body" id="preview-body"></div>
         </article>
       </section>
     </main>

@@ -119,8 +119,6 @@ const state = {
 const elements = {
   pageList: document.querySelector("#page-list"),
   pageCount: document.querySelector("#page-count"),
-  heroPageCount: document.querySelector("#hero-page-count"),
-  lastSavedLabel: document.querySelector("#last-saved-label"),
   saveStatus: document.querySelector("#save-status"),
   editorHeading: document.querySelector("#editor-heading"),
   editorForm: document.querySelector("#editor-form"),
@@ -129,11 +127,6 @@ const elements = {
   tags: document.querySelector("#page-tags"),
   summary: document.querySelector("#page-summary"),
   body: document.querySelector("#page-body"),
-  previewTitle: document.querySelector("#preview-title"),
-  previewSummary: document.querySelector("#preview-summary"),
-  previewTags: document.querySelector("#preview-tags"),
-  previewBody: document.querySelector("#preview-body"),
-  categoryPill: document.querySelector("#active-category-pill"),
   newPageButton: document.querySelector("#new-page-button"),
   duplicatePageButton: document.querySelector("#duplicate-page-button"),
   deletePageButton: document.querySelector("#delete-page-button"),
@@ -141,7 +134,6 @@ const elements = {
   authStatus: document.querySelector("#auth-status"),
   signInButton: document.querySelector("#sign-in-button"),
   signOutButton: document.querySelector("#sign-out-button"),
-  workspaceLink: document.querySelector("#workspace-link"),
   pageRouteLink: document.querySelector("#page-route-link"),
   editRouteLink: document.querySelector("#edit-route-link"),
   openPageInlineLink: document.querySelector("#open-page-inline-link"),
@@ -178,14 +170,8 @@ function renderSaveState(label) {
   elements.saveStatus.textContent = label;
 }
 
-function renderHeroSummary() {
-  elements.heroPageCount.textContent = String(state.pages.length);
+function renderPageCount() {
   elements.pageCount.textContent = `${state.pages.length} pages`;
-  elements.lastSavedLabel.textContent = state.lastSavedAt
-    ? state.lastSavedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-    : state.syncMode === "firebase"
-      ? "Cloud sync idle"
-      : "Local seed data";
 }
 
 function renderSyncState() {
@@ -448,26 +434,17 @@ function renderEditor() {
   elements.deletePageButton.disabled = state.pages.length === 1 || (state.syncMode === "firebase" && !state.user);
 }
 
-function renderPreview() {
+function renderRouteLinks() {
   const page = getActivePage();
   if (!page) {
     return;
   }
-
-  elements.previewTitle.textContent = page.title || "Untitled page";
-  elements.previewSummary.textContent = page.summary || "Add a summary to explain what this page is for.";
-  elements.categoryPill.textContent = page.category;
-  elements.previewBody.innerHTML = renderMarkdown(page.body);
-  elements.previewTags.innerHTML = page.tags.length
-    ? page.tags.map((tag) => `<span class="pill">${escapeHtml(tag)}</span>`).join("")
-    : '<span class="pill">untagged</span>';
 
   const pageHash = `#/page/${encodeURIComponent(page.id)}`;
   const editHash = `#/edit/${encodeURIComponent(page.id)}`;
 
   elements.pageRouteLink.href = pageHash;
   elements.editRouteLink.href = editHash;
-  elements.openPageInlineLink.href = pageHash;
   elements.routeCopy.textContent = state.routeMode === "page"
     ? `Direct page URL: ${window.location.origin}${window.location.pathname}${pageHash}`
     : state.routeMode === "workspace-edit"
@@ -480,8 +457,8 @@ function renderAll() {
   ensureActivePage();
   renderPageList();
   renderEditor();
-  renderPreview();
-  renderHeroSummary();
+  renderRouteLinks();
+  renderPageCount();
   renderSyncState();
 }
 
@@ -657,13 +634,6 @@ function handleLiveEdit() {
     .filter(Boolean);
 
   elements.editorHeading.textContent = draftTitle;
-  elements.previewTitle.textContent = draftTitle;
-  elements.previewSummary.textContent = draftSummary || "Add a summary to explain what this page is for.";
-  elements.categoryPill.textContent = elements.category.value;
-  elements.previewTags.innerHTML = draftTags.length
-    ? draftTags.map((tag) => `<span class="pill">${escapeHtml(tag)}</span>`).join("")
-    : '<span class="pill">untagged</span>';
-  elements.previewBody.innerHTML = renderMarkdown(elements.body.value);
 
   if (
     active.title !== draftTitle ||

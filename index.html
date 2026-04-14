@@ -3,103 +3,143 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Engineering Dashboard</title>
-  <meta name="description" content="Dashboard for tracking engineering delivery, reliability, and team health.">
+  <title>Engineering Workspace</title>
+  <meta name="description" content="Editable engineering workspace for dashboards, runbooks, architecture notes, and operational documentation.">
   <meta name="theme-color" content="#f2efe8">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="workspace.css">
 </head>
 <body>
-  <div class="page-shell">
-    <header class="hero">
-      <div>
-        <p class="eyebrow">Engineering Operations</p>
-        <h1>One view for delivery, quality, and team health.</h1>
-        <p class="hero-copy">
-          Track release pace, incident pressure, sprint execution, and active risks
-          without stitching together five separate tools.
+  <div class="workspace-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <p class="eyebrow">Engineering Workspace</p>
+        <h1>Docs, dashboards, and runbooks in one place.</h1>
+        <p class="intro-copy">
+          This first version behaves like a lightweight internal wiki with editable pages,
+          browser persistence, and a dashboard-style home page.
         </p>
       </div>
-      <div class="hero-panel">
-        <span class="hero-label">Reporting Window</span>
-        <strong>April 1 to April 14</strong>
-        <p>Updated from connected engineering systems every 15 minutes.</p>
+
+      <div class="sidebar-panel">
+        <div class="sidebar-actions">
+          <button class="button button-primary" id="new-page-button" type="button">New page</button>
+          <button class="button button-secondary" id="duplicate-page-button" type="button">Duplicate</button>
+        </div>
+        <label class="search-label" for="page-search">Search pages</label>
+        <input class="search-input" id="page-search" type="search" placeholder="Search titles or tags">
       </div>
-    </header>
 
-    <main class="dashboard-grid">
-      <section class="card card-accent stats-card">
-        <div class="section-heading">
+      <div class="sidebar-panel">
+        <div class="panel-header">
           <div>
-            <p class="section-label">Executive Snapshot</p>
-            <h2>Key metrics</h2>
+            <p class="section-label">Library</p>
+            <h2>Pages</h2>
           </div>
-          <span class="pill pill-live">Live mock data</span>
+          <span class="pill" id="page-count">0 pages</span>
         </div>
-        <div class="stats-grid" id="stats-grid"></div>
-      </section>
+        <nav class="page-list" id="page-list" aria-label="Page list"></nav>
+      </div>
+    </aside>
 
-      <section class="card chart-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-label">Delivery Throughput</p>
-            <h2>Deployments by week</h2>
-          </div>
-          <span class="pill">Target: 18/week</span>
+    <main class="content-column">
+      <section class="hero-strip">
+        <div>
+          <p class="eyebrow">Workspace Overview</p>
+          <h2>Use this as your engineering front door.</h2>
+          <p class="hero-copy">
+            Create reference pages for architecture, incidents, ownership, release notes,
+            and team rituals. The home page stays pinned as a dashboard summary.
+          </p>
         </div>
-        <div class="chart" id="deployments-chart" aria-label="Deployment throughput chart"></div>
-      </section>
-
-      <section class="card feed-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-label">Production Health</p>
-            <h2>Incident watch</h2>
+        <div class="hero-summary">
+          <div class="summary-stat">
+            <span class="summary-label">Stored pages</span>
+            <strong id="hero-page-count">0</strong>
           </div>
-          <span class="pill pill-alert">2 open sev-2</span>
-        </div>
-        <div class="feed-list" id="incident-feed"></div>
-      </section>
-
-      <section class="card table-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-label">Team Flow</p>
-            <h2>Squad operating view</h2>
+          <div class="summary-stat">
+            <span class="summary-label">Last saved</span>
+            <strong id="last-saved-label">Not yet</strong>
           </div>
-          <span class="pill">4 squads</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Squad</th>
-                <th>Sprint goal</th>
-                <th>PR cycle</th>
-                <th>Escaped defects</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="squad-table"></tbody>
-          </table>
         </div>
       </section>
 
-      <section class="card roadmap-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-label">Current Focus</p>
-            <h2>Top engineering risks</h2>
+      <section class="workspace-grid">
+        <article class="card editor-card">
+          <div class="panel-header">
+            <div>
+              <p class="section-label">Editor</p>
+              <h2 id="editor-heading">Page details</h2>
+            </div>
+            <span class="pill pill-live" id="save-status">Ready</span>
           </div>
-          <span class="pill">Needs review</span>
-        </div>
-        <div class="risk-list" id="risk-list"></div>
+
+          <form class="editor-form" id="editor-form">
+            <label class="field">
+              <span class="field-label">Title</span>
+              <input id="page-title" name="title" type="text" placeholder="Platform on-call handbook">
+            </label>
+
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">Category</span>
+                <select id="page-category" name="category">
+                  <option value="Dashboard">Dashboard</option>
+                  <option value="Runbook">Runbook</option>
+                  <option value="Architecture">Architecture</option>
+                  <option value="Planning">Planning</option>
+                  <option value="Reference">Reference</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span class="field-label">Tags</span>
+                <input id="page-tags" name="tags" type="text" placeholder="incident, platform, on-call">
+              </label>
+            </div>
+
+            <label class="field">
+              <span class="field-label">Summary</span>
+              <textarea id="page-summary" name="summary" rows="3" placeholder="Short description for the page list and search results"></textarea>
+            </label>
+
+            <label class="field">
+              <span class="field-label">Body</span>
+              <textarea id="page-body" name="body" rows="18" placeholder="# Heading&#10;&#10;Write notes, bullets, and links here."></textarea>
+            </label>
+
+            <div class="editor-actions">
+              <button class="button button-primary" type="submit">Save page</button>
+              <button class="button button-secondary" id="delete-page-button" type="button">Delete page</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="card preview-card">
+          <div class="panel-header">
+            <div>
+              <p class="section-label">Preview</p>
+              <h2>Rendered page</h2>
+            </div>
+            <span class="pill" id="active-category-pill">Dashboard</span>
+          </div>
+
+          <div class="preview-meta">
+            <div>
+              <p class="preview-title" id="preview-title">Engineering Command Center</p>
+              <p class="preview-summary" id="preview-summary"></p>
+            </div>
+            <div class="preview-badges" id="preview-tags"></div>
+          </div>
+
+          <div class="preview-body" id="preview-body"></div>
+        </article>
       </section>
     </main>
   </div>
 
-  <script src="app.js"></script>
+  <script src="workspace.js"></script>
 </body>
 </html>

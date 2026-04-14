@@ -123,7 +123,6 @@ const elements = {
   lastSavedLabel: document.querySelector("#last-saved-label"),
   saveStatus: document.querySelector("#save-status"),
   editorHeading: document.querySelector("#editor-heading"),
-  pageSearch: document.querySelector("#page-search"),
   editorForm: document.querySelector("#editor-form"),
   title: document.querySelector("#page-title"),
   category: document.querySelector("#page-category"),
@@ -421,18 +420,13 @@ function renderPageList() {
   elements.pageList.innerHTML = pages
     .map((page) => {
       const activeClass = page.id === state.activePageId ? "active" : "";
-      const tags = page.tags.slice(0, 3).join(" | ");
 
       return `
         <button class="page-item ${activeClass}" data-page-id="${page.id}" type="button">
           <div class="page-item-header">
-            <div>
-              <h3>${escapeHtml(page.title)}</h3>
-              <p class="page-item-summary">${escapeHtml(page.summary)}</p>
-            </div>
+            <h3>${escapeHtml(page.title)}</h3>
             <span class="pill">${escapeHtml(page.category)}</span>
           </div>
-          <p class="page-item-meta">${escapeHtml(tags || "untagged")}</p>
         </button>
       `;
     })
@@ -776,11 +770,6 @@ elements.pageList.addEventListener("click", (event) => {
   }
   renderAll();
   renderSaveState("Ready");
-});
-
-elements.pageSearch.addEventListener("input", (event) => {
-  state.searchTerm = event.target.value;
-  renderPageList();
 });
 
 elements.editorForm.addEventListener("submit", async (event) => {

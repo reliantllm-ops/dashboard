@@ -56,6 +56,7 @@ p {
   padding: 20px 0 28px;
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
+  align-items: start;
   gap: 20px;
 }
 
@@ -74,16 +75,7 @@ p {
   display: grid;
   align-content: start;
   gap: 18px;
-  position: sticky;
-  top: 18px;
-  max-height: calc(100vh - 36px);
-  overflow: auto;
-}
-
-.brand-block h1 {
-  margin-top: 8px;
-  font-size: clamp(2.4rem, 4vw, 3.8rem);
-  line-height: 0.95;
+  min-width: 0;
 }
 
 .intro-copy,
@@ -100,9 +92,7 @@ p {
 .eyebrow,
 .section-label,
 .field-label,
-.search-label,
 .summary-label,
-.page-item-meta,
 .pill,
 .button,
 .preview-body code {
@@ -113,7 +103,6 @@ p {
 .eyebrow,
 .section-label,
 .field-label,
-.search-label,
 .summary-label {
   color: var(--muted);
   font-size: 0.77rem;
@@ -143,6 +132,10 @@ p {
 .sidebar-panel .sidebar-actions:last-child {
   margin-bottom: 0;
   margin-top: 14px;
+}
+
+.sidebar-actions-compact {
+  margin-bottom: 12px;
 }
 
 .button {
@@ -177,12 +170,6 @@ p {
   transform: none;
 }
 
-.search-label {
-  display: block;
-  margin-bottom: 8px;
-}
-
-.search-input,
 .field input,
 .field select,
 .field textarea {
@@ -194,7 +181,6 @@ p {
   border: 1px solid var(--line);
 }
 
-.search-input:focus,
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
@@ -217,7 +203,7 @@ p {
 
 .page-item {
   width: 100%;
-  padding: 14px;
+  padding: 12px 14px;
   text-align: left;
   cursor: pointer;
 }
@@ -230,29 +216,19 @@ p {
 .page-item-header {
   display: flex;
   justify-content: space-between;
-  align-items: start;
+  align-items: center;
   gap: 12px;
 }
 
 .page-item h3 {
   font-size: 1rem;
-}
-
-.page-item-summary {
-  margin-top: 8px;
-  font-size: 0.92rem;
-}
-
-.page-item-meta {
-  margin-top: 12px;
-  color: var(--muted);
-  font-size: 0.74rem;
-  text-transform: uppercase;
+  font-weight: 500;
 }
 
 .content-column {
   display: grid;
   gap: 20px;
+  min-width: 0;
 }
 
 .route-toolbar {
@@ -489,11 +465,6 @@ body.workspace-home-mode .workspace-grid {
   .workspace-shell {
     grid-template-columns: 1fr;
   }
-
-  .sidebar {
-    position: static;
-    max-height: none;
-  }
 }
 
 @media (max-width: 980px) {
@@ -533,10 +504,6 @@ body.workspace-home-mode .workspace-grid {
   .hero-strip {
     padding: 18px;
     border-radius: 20px;
-  }
-
-  .brand-block h1 {
-    font-size: 2.7rem;
   }
 
   .sidebar-actions,

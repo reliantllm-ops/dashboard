@@ -14,24 +14,6 @@
 <body>
   <div class="workspace-shell">
     <aside class="sidebar">
-      <div class="brand-block">
-        <p class="eyebrow">Engineering Workspace</p>
-        <h1>Docs, dashboards, and runbooks in one place.</h1>
-        <p class="intro-copy">
-          This first version behaves like a lightweight internal wiki with editable pages,
-          browser persistence, and a dashboard-style home page.
-        </p>
-      </div>
-
-      <div class="sidebar-panel">
-        <div class="sidebar-actions">
-          <button class="button button-primary" id="new-page-button" type="button">New page</button>
-          <button class="button button-secondary" id="duplicate-page-button" type="button">Duplicate</button>
-        </div>
-        <label class="search-label" for="page-search">Search pages</label>
-        <input class="search-input" id="page-search" type="search" placeholder="Search titles or tags">
-      </div>
-
       <div class="sidebar-panel">
         <div class="panel-header">
           <div>
@@ -54,6 +36,10 @@
             <h2>Pages</h2>
           </div>
           <span class="pill" id="page-count">0 pages</span>
+        </div>
+        <div class="sidebar-actions sidebar-actions-compact">
+          <button class="button button-primary" id="new-page-button" type="button">New page</button>
+          <button class="button button-secondary" id="duplicate-page-button" type="button">Duplicate</button>
         </div>
         <nav class="page-list" id="page-list" aria-label="Page list"></nav>
       </div>

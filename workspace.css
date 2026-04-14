@@ -255,6 +255,24 @@ p {
   gap: 20px;
 }
 
+.route-toolbar {
+  padding: 16px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.route-copy {
+  color: var(--muted);
+}
+
 .hero-strip {
   padding: 22px;
   display: flex;
@@ -294,6 +312,10 @@ p {
 .card {
   padding: 22px;
   overflow: hidden;
+}
+
+.button-inline {
+  padding: 7px 12px;
 }
 
 .pill {
@@ -349,6 +371,12 @@ p {
   justify-content: space-between;
   align-items: start;
   gap: 16px;
+}
+
+.preview-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .preview-title {
@@ -431,6 +459,24 @@ p {
   font-size: 0.95rem;
 }
 
+body.page-mode .sidebar,
+body.page-mode .hero-strip,
+body.page-mode .editor-card {
+  display: none;
+}
+
+body.page-mode .workspace-shell {
+  grid-template-columns: 1fr;
+}
+
+body.page-mode .workspace-grid {
+  grid-template-columns: 1fr;
+}
+
+body.page-mode .preview-card {
+  min-height: calc(100vh - 120px);
+}
+
 @media (max-width: 1180px) {
   .workspace-shell {
     grid-template-columns: 1fr;
@@ -461,6 +507,11 @@ p {
   .preview-badges {
     justify-content: start;
   }
+
+  .route-toolbar {
+    flex-direction: column;
+    align-items: start;
+  }
 }
 
 @media (max-width: 640px) {
@@ -487,7 +538,8 @@ p {
 
   .editor-actions,
   .panel-header,
-  .page-item-header {
+  .page-item-header,
+  .preview-header-actions {
     flex-direction: column;
   }
 }

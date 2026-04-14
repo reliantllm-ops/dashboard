@@ -60,6 +60,15 @@
     </aside>
 
     <main class="content-column">
+      <section class="route-toolbar card" id="route-toolbar">
+        <div class="route-actions">
+          <a class="button button-secondary" id="workspace-link" href="#/">Workspace</a>
+          <a class="button button-secondary" id="page-route-link" href="#/page/home-dashboard">Open page</a>
+          <a class="button button-secondary" id="edit-route-link" href="#/edit/home-dashboard">Edit page</a>
+        </div>
+        <p class="route-copy" id="route-copy">Each page can now be opened directly with its own URL.</p>
+      </section>
+
       <section class="hero-strip">
         <div>
           <p class="eyebrow">Workspace Overview</p>
@@ -138,7 +147,10 @@
               <p class="section-label">Preview</p>
               <h2>Rendered page</h2>
             </div>
-            <span class="pill" id="active-category-pill">Dashboard</span>
+            <div class="preview-header-actions">
+              <span class="pill" id="active-category-pill">Dashboard</span>
+              <a class="button button-secondary button-inline" id="open-page-inline-link" href="#/page/home-dashboard">Open direct page</a>
+            </div>
           </div>
 
           <div class="preview-meta">

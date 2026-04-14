@@ -112,7 +112,8 @@ const state = {
   lastSavedAt: null,
   syncMode: firebaseProject.enabled ? "firebase" : "local",
   authReady: false,
-  user: null
+  user: null,
+  routeMode: "workspace"
 };
 
 const elements = {
@@ -140,7 +141,12 @@ const elements = {
   syncMode: document.querySelector("#sync-mode"),
   authStatus: document.querySelector("#auth-status"),
   signInButton: document.querySelector("#sign-in-button"),
-  signOutButton: document.querySelector("#sign-out-button")
+  signOutButton: document.querySelector("#sign-out-button"),
+  workspaceLink: document.querySelector("#workspace-link"),
+  pageRouteLink: document.querySelector("#page-route-link"),
+  editRouteLink: document.querySelector("#edit-route-link"),
+  openPageInlineLink: document.querySelector("#open-page-inline-link"),
+  routeCopy: document.querySelector("#route-copy")
 };
 
 let auth = null;
@@ -201,6 +207,48 @@ function renderSyncState() {
 
   elements.signInButton.disabled = state.syncMode !== "firebase" || !state.authReady || !!state.user;
   elements.signOutButton.disabled = state.syncMode !== "firebase" || !state.user;
+}
+
+function parseRoute() {
+  const hash = window.location.hash || "#/";
+
+  if (hash.startsWith("#/page/")) {
+    return { mode: "page", pageId: decodeURIComponent(hash.slice(7)) };
+  }
+
+  if (hash.startsWith("#/edit/")) {
+    return { mode: "workspace", pageId: decodeURIComponent(hash.slice(7)) };
+  }
+
+  return { mode: "workspace", pageId: null };
+}
+
+function setRoute(mode, pageId) {
+  const nextHash = mode === "page"
+    ? `#/page/${encodeURIComponent(pageId)}`
+    : pageId
+      ? `#/edit/${encodeURIComponent(pageId)}`
+      : "#/";
+
+  if (window.location.hash !== nextHash) {
+    window.location.hash = nextHash;
+    return;
+  }
+
+  applyRoute();
+}
+
+function applyRoute() {
+  const route = parseRoute();
+  state.routeMode = route.mode;
+
+  if (route.pageId && state.pages.some((page) => page.id === route.pageId)) {
+    state.activePageId = route.pageId;
+  } else {
+    ensureActivePage();
+  }
+
+  document.body.classList.toggle("page-mode", state.routeMode === "page");
 }
 
 function ensureActivePage() {
@@ -418,9 +466,20 @@ function renderPreview() {
   elements.previewTags.innerHTML = page.tags.length
     ? page.tags.map((tag) => `<span class="pill">${escapeHtml(tag)}</span>`).join("")
     : '<span class="pill">untagged</span>';
+
+  const pageHash = `#/page/${encodeURIComponent(page.id)}`;
+  const editHash = `#/edit/${encodeURIComponent(page.id)}`;
+
+  elements.pageRouteLink.href = pageHash;
+  elements.editRouteLink.href = editHash;
+  elements.openPageInlineLink.href = pageHash;
+  elements.routeCopy.textContent = state.routeMode === "page"
+    ? `Direct page URL: ${window.location.origin}${window.location.pathname}${pageHash}`
+    : "Each page can now be opened directly with its own URL.";
 }
 
 function renderAll() {
+  applyRoute();
   ensureActivePage();
   renderPageList();
   renderEditor();
@@ -488,6 +547,7 @@ async function createBlankPage() {
   saveLocalPages();
   state.lastSavedAt = new Date();
   renderSaveState("Saved");
+  setRoute("workspace", page.id);
   renderAll();
 }
 
@@ -514,6 +574,7 @@ async function duplicateActivePage() {
   saveLocalPages();
   state.lastSavedAt = new Date();
   renderSaveState("Saved");
+  setRoute("workspace", page.id);
   renderAll();
 }
 
@@ -538,6 +599,7 @@ async function deleteActivePage() {
   saveLocalPages();
   state.lastSavedAt = new Date();
   renderSaveState("Deleted");
+  setRoute("workspace", state.activePageId);
   renderAll();
 }
 
@@ -557,6 +619,7 @@ async function upsertFirebasePage(page, isNewPage) {
   state.activePageId = page.id;
   state.lastSavedAt = new Date();
   renderSaveState("Saved");
+  setRoute(state.routeMode === "page" ? "page" : "workspace", page.id);
 }
 
 async function updateActivePageFromForm() {
@@ -579,6 +642,7 @@ async function updateActivePageFromForm() {
   saveLocalPages();
   state.lastSavedAt = new Date();
   renderSaveState("Saved");
+  setRoute(state.routeMode === "page" ? "page" : "workspace", page.id);
   renderAll();
 }
 
@@ -700,6 +764,7 @@ elements.pageList.addEventListener("click", (event) => {
   }
 
   state.activePageId = button.getAttribute("data-page-id");
+  setRoute("workspace", state.activePageId);
   renderAll();
   renderSaveState("Ready");
 });
@@ -738,5 +803,11 @@ elements.signOutButton.addEventListener("click", async () => {
   field.addEventListener("input", handleLiveEdit);
 });
 
+window.addEventListener("hashchange", () => {
+  applyRoute();
+  renderAll();
+});
+
+applyRoute();
 renderAll();
 connectFirebase();

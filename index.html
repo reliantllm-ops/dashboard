@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Engineering Dashboard</title>
+  <meta name="description" content="Dashboard for tracking engineering delivery, reliability, and team health.">
+  <meta name="theme-color" content="#f2efe8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Engineering Operations</p>
+        <h1>One view for delivery, quality, and team health.</h1>
+        <p class="hero-copy">
+          Track release pace, incident pressure, sprint execution, and active risks
+          without stitching together five separate tools.
+        </p>
+      </div>
+      <div class="hero-panel">
+        <span class="hero-label">Reporting Window</span>
+        <strong>April 1 to April 14</strong>
+        <p>Updated from connected engineering systems every 15 minutes.</p>
+      </div>
+    </header>
+
+    <main class="dashboard-grid">
+      <section class="card card-accent stats-card">
+        <div class="section-heading">
+          <div>
+            <p class="section-label">Executive Snapshot</p>
+            <h2>Key metrics</h2>
+          </div>
+          <span class="pill pill-live">Live mock data</span>
+        </div>
+        <div class="stats-grid" id="stats-grid"></div>
+      </section>
+
+      <section class="card chart-card">
+        <div class="section-heading">
+          <div>
+            <p class="section-label">Delivery Throughput</p>
+            <h2>Deployments by week</h2>
+          </div>
+          <span class="pill">Target: 18/week</span>
+        </div>
+        <div class="chart" id="deployments-chart" aria-label="Deployment throughput chart"></div>
+      </section>
+
+      <section class="card feed-card">
+        <div class="section-heading">
+          <div>
+            <p class="section-label">Production Health</p>
+            <h2>Incident watch</h2>
+          </div>
+          <span class="pill pill-alert">2 open sev-2</span>
+        </div>
+        <div class="feed-list" id="incident-feed"></div>
+      </section>
+
+      <section class="card table-card">
+        <div class="section-heading">
+          <div>
+            <p class="section-label">Team Flow</p>
+            <h2>Squad operating view</h2>
+          </div>
+          <span class="pill">4 squads</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Squad</th>
+                <th>Sprint goal</th>
+                <th>PR cycle</th>
+                <th>Escaped defects</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="squad-table"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card roadmap-card">
+        <div class="section-heading">
+          <div>
+            <p class="section-label">Current Focus</p>
+            <h2>Top engineering risks</h2>
+          </div>
+          <span class="pill">Needs review</span>
+        </div>
+        <div class="risk-list" id="risk-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

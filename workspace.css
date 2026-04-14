@@ -477,6 +477,14 @@ body.page-mode .preview-card {
   min-height: calc(100vh - 120px);
 }
 
+body.workspace-home-mode .editor-card {
+  display: none;
+}
+
+body.workspace-home-mode .workspace-grid {
+  grid-template-columns: 1fr;
+}
+
 @media (max-width: 1180px) {
   .workspace-shell {
     grid-template-columns: 1fr;

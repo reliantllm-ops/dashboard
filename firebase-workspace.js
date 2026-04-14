@@ -113,7 +113,7 @@ const state = {
   syncMode: firebaseProject.enabled ? "firebase" : "local",
   authReady: false,
   user: null,
-  routeMode: "workspace"
+  routeMode: "workspace-home"
 };
 
 const elements = {
@@ -217,16 +217,16 @@ function parseRoute() {
   }
 
   if (hash.startsWith("#/edit/")) {
-    return { mode: "workspace", pageId: decodeURIComponent(hash.slice(7)) };
+    return { mode: "workspace-edit", pageId: decodeURIComponent(hash.slice(7)) };
   }
 
-  return { mode: "workspace", pageId: null };
+  return { mode: "workspace-home", pageId: null };
 }
 
 function setRoute(mode, pageId) {
   const nextHash = mode === "page"
     ? `#/page/${encodeURIComponent(pageId)}`
-    : pageId
+    : mode === "workspace-edit"
       ? `#/edit/${encodeURIComponent(pageId)}`
       : "#/";
 
@@ -249,6 +249,7 @@ function applyRoute() {
   }
 
   document.body.classList.toggle("page-mode", state.routeMode === "page");
+  document.body.classList.toggle("workspace-home-mode", state.routeMode === "workspace-home");
 }
 
 function ensureActivePage() {
@@ -475,7 +476,9 @@ function renderPreview() {
   elements.openPageInlineLink.href = pageHash;
   elements.routeCopy.textContent = state.routeMode === "page"
     ? `Direct page URL: ${window.location.origin}${window.location.pathname}${pageHash}`
-    : "Each page can now be opened directly with its own URL.";
+    : state.routeMode === "workspace-edit"
+      ? "Edit page opens a page-specific editor route."
+      : "Workspace is now the read-first home view. Use Edit page to modify the selected page.";
 }
 
 function renderAll() {
@@ -547,7 +550,7 @@ async function createBlankPage() {
   saveLocalPages();
   state.lastSavedAt = new Date();
   renderSaveState("Saved");
-  setRoute("workspace", page.id);
+  setRoute("workspace-edit", page.id);
   renderAll();
 }
 
@@ -574,7 +577,7 @@ async function duplicateActivePage() {
   saveLocalPages();
   state.lastSavedAt = new Date();
   renderSaveState("Saved");
-  setRoute("workspace", page.id);
+  setRoute("workspace-edit", page.id);
   renderAll();
 }
 
@@ -599,7 +602,7 @@ async function deleteActivePage() {
   saveLocalPages();
   state.lastSavedAt = new Date();
   renderSaveState("Deleted");
-  setRoute("workspace", state.activePageId);
+  setRoute("workspace-home", state.activePageId);
   renderAll();
 }
 
@@ -619,7 +622,7 @@ async function upsertFirebasePage(page, isNewPage) {
   state.activePageId = page.id;
   state.lastSavedAt = new Date();
   renderSaveState("Saved");
-  setRoute(state.routeMode === "page" ? "page" : "workspace", page.id);
+  setRoute(state.routeMode === "page" ? "page" : "workspace-edit", page.id);
 }
 
 async function updateActivePageFromForm() {
@@ -642,7 +645,7 @@ async function updateActivePageFromForm() {
   saveLocalPages();
   state.lastSavedAt = new Date();
   renderSaveState("Saved");
-  setRoute(state.routeMode === "page" ? "page" : "workspace", page.id);
+  setRoute(state.routeMode === "page" ? "page" : "workspace-edit", page.id);
   renderAll();
 }
 
@@ -764,7 +767,13 @@ elements.pageList.addEventListener("click", (event) => {
   }
 
   state.activePageId = button.getAttribute("data-page-id");
-  setRoute("workspace", state.activePageId);
+  if (state.routeMode === "workspace-edit") {
+    setRoute("workspace-edit", state.activePageId);
+  } else if (state.routeMode === "page") {
+    setRoute("page", state.activePageId);
+  } else {
+    applyRoute();
+  }
   renderAll();
   renderSaveState("Ready");
 });

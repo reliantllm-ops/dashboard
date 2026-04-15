@@ -123,6 +123,8 @@ const elements = {
   editorHeading: document.querySelector("#editor-heading"),
   editorForm: document.querySelector("#editor-form"),
   title: document.querySelector("#page-title"),
+  publishedTitle: document.querySelector("#published-title"),
+  publishedBody: document.querySelector("#published-body"),
   category: document.querySelector("#page-category"),
   tags: document.querySelector("#page-tags"),
   summary: document.querySelector("#page-summary"),
@@ -434,6 +436,16 @@ function renderEditor() {
   elements.deletePageButton.disabled = state.pages.length === 1 || (state.syncMode === "firebase" && !state.user);
 }
 
+function renderPublishedPage() {
+  const page = getActivePage();
+  if (!page) {
+    return;
+  }
+
+  elements.publishedTitle.textContent = page.title || "Untitled page";
+  elements.publishedBody.innerHTML = renderMarkdown(page.body);
+}
+
 function renderRouteLinks() {
   const page = getActivePage();
   if (!page) {
@@ -457,6 +469,7 @@ function renderAll() {
   ensureActivePage();
   renderPageList();
   renderEditor();
+  renderPublishedPage();
   renderRouteLinks();
   renderPageCount();
   renderSyncState();

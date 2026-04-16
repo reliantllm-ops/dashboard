@@ -355,6 +355,7 @@ p {
   min-height: 360px;
   line-height: 1.5;
   overflow-wrap: anywhere;
+  position: relative;
 }
 
 .body-editor:focus {
@@ -363,6 +364,7 @@ p {
 }
 
 .body-editor p {
+  min-height: 1.35em;
   margin: 0 0 0.9em;
 }
 
@@ -419,6 +421,28 @@ p {
   max-width: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  cursor: grab;
+}
+
+.chart-block.chart-block-selected {
+  border-color: rgba(12, 102, 228, 0.55);
+  box-shadow: 0 0 0 2px rgba(12, 102, 228, 0.18);
+}
+
+.chart-block.chart-block-dragging {
+  opacity: 0.55;
+  cursor: grabbing;
+}
+
+.chart-drop-indicator {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  background: #b7bcc3;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 20;
 }
 
 .chart-block-header {

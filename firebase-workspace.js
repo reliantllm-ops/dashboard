@@ -126,6 +126,12 @@ const chartEditorState = {
   open: false
 };
 
+let selectedChartElement = null;
+let draggedChartElement = null;
+let chartDropTarget = null;
+let chartDropPosition = "before";
+let chartDropIndicator = null;
+
 const elements = {
   pageList: document.querySelector("#page-list"),
   pageCount: document.querySelector("#page-count"),
@@ -665,11 +671,12 @@ function chartInlineStyle(chart) {
 function buildChartBlockMarkup(data, mode = "editor") {
   const chart = normalizeChartData(data);
   const settingsButton = mode === "editor"
-    ? '<button class="button button-secondary chart-settings-button" type="button" data-chart-settings="true" aria-label="Edit chart settings">&#9881;</button>'
-    : "";
+      ? '<button class="button button-secondary chart-settings-button" type="button" data-chart-settings="true" aria-label="Edit chart settings">&#9881;</button>'
+      : "";
+  const draggable = mode === "editor" ? ' draggable="true"' : "";
 
   return `
-    <div class="${CHART_CLASS}" ${CHART_DATA_ATTRIBUTE}="${encodeChartData(chart)}" contenteditable="false" style="${chartInlineStyle(chart)}">
+    <div class="${CHART_CLASS}" ${CHART_DATA_ATTRIBUTE}="${encodeChartData(chart)}" contenteditable="false"${draggable} style="${chartInlineStyle(chart)}">
       <div class="chart-block-header">
         <div>
           ${chart.style.showTitle ? `<h3 class="chart-block-title" style="font-size:${chart.style.titleSize}px">${escapeHtml(chart.title)}</h3>` : ""}
@@ -762,6 +769,7 @@ function replaceEditedChart(nextChart) {
     return;
   }
 
+  const previousElement = chartEditorState.chartElement;
   const wrapper = document.createElement("div");
   wrapper.innerHTML = buildChartBlockMarkup(nextChart, "editor");
   const nextElement = wrapper.firstElementChild;
@@ -769,8 +777,209 @@ function replaceEditedChart(nextChart) {
     return;
   }
 
-  chartEditorState.chartElement.replaceWith(nextElement);
+  previousElement.replaceWith(nextElement);
   chartEditorState.chartElement = nextElement;
+  if (selectedChartElement === previousElement) {
+    selectedChartElement = nextElement;
+    selectedChartElement.classList.add("chart-block-selected");
+  } else if (selectedChartElement?.isConnected === false) {
+    selectedChartElement = null;
+  }
+}
+
+function clearSelectedChart() {
+  if (selectedChartElement?.isConnected) {
+    selectedChartElement.classList.remove("chart-block-selected");
+  }
+
+  selectedChartElement = null;
+}
+
+function selectChart(chartElement) {
+  if (!(chartElement instanceof HTMLElement)) {
+    return;
+  }
+
+  if (selectedChartElement === chartElement) {
+    return;
+  }
+
+  clearSelectedChart();
+  selectedChartElement = chartElement;
+  selectedChartElement.classList.add("chart-block-selected");
+}
+
+function chartTrailingParagraph(chartElement) {
+  const nextBlock = chartElement?.nextElementSibling;
+  return nextBlock instanceof HTMLParagraphElement ? nextBlock : null;
+}
+
+function chartDraggedNodes(chartElement = draggedChartElement) {
+  const nodes = [];
+  if (chartElement instanceof HTMLElement) {
+    nodes.push(chartElement);
+    const trailingParagraph = chartTrailingParagraph(chartElement);
+    if (trailingParagraph) {
+      nodes.push(trailingParagraph);
+    }
+  }
+  return nodes;
+}
+
+function isChartDraggedNode(node) {
+  return chartDraggedNodes().includes(node);
+}
+
+function clearChartDropMarker() {
+  chartDropTarget = null;
+  chartDropPosition = "before";
+  if (chartDropIndicator) {
+    chartDropIndicator.remove();
+    chartDropIndicator = null;
+  }
+}
+
+function ensureChartDropIndicator() {
+  if (chartDropIndicator?.isConnected) {
+    return chartDropIndicator;
+  }
+
+  chartDropIndicator = document.createElement("div");
+  chartDropIndicator.className = "chart-drop-indicator";
+  chartDropIndicator.hidden = true;
+  elements.bodyEditor.appendChild(chartDropIndicator);
+  return chartDropIndicator;
+}
+
+function bodyDropBlocks() {
+  return Array.from(elements.bodyEditor.children).filter((element) => !isChartDraggedNode(element));
+}
+
+function setChartDropMarker(target, position) {
+  if (!(target instanceof HTMLElement)) {
+    clearChartDropMarker();
+    return;
+  }
+
+  if (chartDropTarget === target && chartDropPosition === position) {
+    return;
+  }
+
+  chartDropTarget = target;
+  chartDropPosition = position;
+  const editorRect = elements.bodyEditor.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const offsetTop = position === "after"
+    ? (targetRect.bottom - editorRect.top + elements.bodyEditor.scrollTop)
+    : (targetRect.top - editorRect.top + elements.bodyEditor.scrollTop);
+
+  const indicator = ensureChartDropIndicator();
+  indicator.hidden = false;
+  indicator.style.top = `${Math.max(0, offsetTop - 1)}px`;
+}
+
+function updateChartDropTarget(clientY) {
+  const blocks = bodyDropBlocks();
+  if (!blocks.length) {
+    clearChartDropMarker();
+    return;
+  }
+
+  let bestBlock = blocks[0];
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  blocks.forEach((block) => {
+    const rect = block.getBoundingClientRect();
+    const midpoint = rect.top + rect.height / 2;
+    const distance = Math.abs(clientY - midpoint);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestBlock = block;
+    }
+  });
+
+  const rect = bestBlock.getBoundingClientRect();
+  const position = clientY >= rect.top + rect.height / 2 ? "after" : "before";
+  setChartDropMarker(bestBlock, position);
+}
+
+function moveChartFragmentBefore(chartElement, destination) {
+  if (!(chartElement instanceof HTMLElement) || !(destination instanceof HTMLElement)) {
+    return false;
+  }
+
+  const trailingParagraph = chartTrailingParagraph(chartElement);
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(chartElement);
+  if (trailingParagraph) {
+    fragment.appendChild(trailingParagraph);
+  }
+  destination.before(fragment);
+  selectChart(chartElement);
+  handleLiveEdit();
+  return true;
+}
+
+function moveChartFragmentAfter(chartElement, destination) {
+  if (!(chartElement instanceof HTMLElement) || !(destination instanceof HTMLElement)) {
+    return false;
+  }
+
+  const trailingParagraph = chartTrailingParagraph(chartElement);
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(chartElement);
+  if (trailingParagraph) {
+    fragment.appendChild(trailingParagraph);
+  } else {
+    fragment.appendChild(createChartTrailingParagraph());
+  }
+
+  const destinationTrailing = chartTrailingParagraph(destination);
+  if (destinationTrailing) {
+    destinationTrailing.after(fragment);
+  } else {
+    destination.after(fragment);
+  }
+
+  selectChart(chartElement);
+  handleLiveEdit();
+  return true;
+}
+
+function moveChartBlock(chartElement, destination, position = "before") {
+  if (!(chartElement instanceof HTMLElement) || !(destination instanceof HTMLElement) || chartElement === destination) {
+    return false;
+  }
+
+  if (isChartDraggedNode(destination)) {
+    return false;
+  }
+
+  if (position === "after") {
+    return moveChartFragmentAfter(chartElement, destination);
+  }
+
+  return moveChartFragmentBefore(chartElement, destination);
+}
+
+function moveChartToEnd(chartElement) {
+  if (!(chartElement instanceof HTMLElement)) {
+    return false;
+  }
+
+  const trailingParagraph = chartTrailingParagraph(chartElement);
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(chartElement);
+  if (trailingParagraph) {
+    fragment.appendChild(trailingParagraph);
+  } else {
+    fragment.appendChild(createChartTrailingParagraph());
+  }
+
+  elements.bodyEditor.appendChild(fragment);
+  selectChart(chartElement);
+  handleLiveEdit();
+  return true;
 }
 
 function renderStoredBody(body) {
@@ -792,7 +1001,7 @@ function renderStoredBody(body) {
 }
 
 function getEditorBodyHtml() {
-  const html = elements.bodyEditor.innerHTML.trim();
+  const html = elements.bodyEditor.innerHTML.replaceAll("\u200B", "").trim();
   return html || "<p></p>";
 }
 
@@ -953,6 +1162,7 @@ function renderEditor() {
 
   chartEditorState.chartElement = null;
   chartEditorState.originalChart = null;
+  clearSelectedChart();
   const source = String(page.body || "").trim();
   const container = document.createElement("div");
   if (!source) {
@@ -1199,7 +1409,7 @@ function toggleChartMenu() {
 
 function createChartTrailingParagraph() {
   const paragraph = document.createElement("p");
-  paragraph.appendChild(document.createElement("br"));
+  paragraph.appendChild(document.createTextNode("\u200B"));
   return paragraph;
 }
 
@@ -1211,10 +1421,71 @@ function focusParagraphStart(paragraph) {
   }
 
   const range = document.createRange();
-  range.selectNodeContents(paragraph);
+  const anchor = paragraph.firstChild || paragraph;
+  range.setStart(anchor, 0);
   range.collapse(true);
   selection.removeAllRanges();
   selection.addRange(range);
+}
+
+function placeCaretAfterNode(node) {
+  elements.bodyEditor.focus();
+  const selection = window.getSelection();
+  if (!selection) {
+    return;
+  }
+
+  const range = document.createRange();
+  range.setStartAfter(node);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function ensureTrailingEditorParagraph() {
+  const lastElement = elements.bodyEditor.lastElementChild;
+  if (lastElement instanceof HTMLParagraphElement) {
+    return lastElement;
+  }
+
+  const paragraph = createChartTrailingParagraph();
+  elements.bodyEditor.appendChild(paragraph);
+  return paragraph;
+}
+
+function placeCaretFromPoint(event) {
+  if (!(event.target instanceof Element)) {
+    return;
+  }
+
+  if (event.target.closest("button, a, input, select, textarea")) {
+    return;
+  }
+
+  const chartElement = event.target.closest(`.${CHART_CLASS}`);
+  if (chartElement) {
+    selectChart(chartElement);
+    elements.bodyEditor.focus();
+    return;
+  }
+
+  clearSelectedChart();
+
+  const isEditorSurface = event.target === elements.bodyEditor;
+  const isParagraph = event.target.closest("p");
+  if (!isEditorSurface && !(isParagraph instanceof HTMLParagraphElement)) {
+    return;
+  }
+
+  if (isParagraph instanceof HTMLParagraphElement) {
+    event.preventDefault();
+    focusParagraphStart(isParagraph);
+    return;
+  }
+
+  const trailingParagraph = ensureTrailingEditorParagraph();
+  event.preventDefault();
+  focusParagraphStart(trailingParagraph);
 }
 
 function insertChartAtCursor(chartType = "bar") {
@@ -1243,6 +1514,7 @@ function insertChartAtCursor(chartType = "bar") {
 
 function openChartEditor(chartElement) {
   const chart = decodeChartData(chartElement.getAttribute(CHART_DATA_ATTRIBUTE));
+  selectChart(chartElement);
   chartEditorState.chartElement = chartElement;
   chartEditorState.originalChart = chart;
   elements.chartTitleInput.value = chart.title;
@@ -1261,6 +1533,33 @@ function closeChartEditor({ revert = false } = {}) {
   chartEditorState.chartElement = null;
   chartEditorState.originalChart = null;
   renderChartEditorFlyout();
+}
+
+function deleteSelectedChart() {
+  if (!selectedChartElement?.isConnected) {
+    clearSelectedChart();
+    return false;
+  }
+
+  const nextBlock = selectedChartElement.nextElementSibling;
+  const previousBlock = selectedChartElement.previousElementSibling;
+  const chartToRemove = selectedChartElement;
+  clearSelectedChart();
+  chartToRemove.remove();
+
+  if (nextBlock instanceof HTMLParagraphElement) {
+    focusParagraphStart(nextBlock);
+  } else if (previousBlock instanceof HTMLParagraphElement) {
+    focusParagraphStart(previousBlock);
+  } else {
+    const trailingParagraph = createChartTrailingParagraph();
+    elements.bodyEditor.appendChild(trailingParagraph);
+    focusParagraphStart(trailingParagraph);
+  }
+
+  closeChartEditor({ revert: false });
+  handleLiveEdit();
+  return true;
 }
 
 function saveChartEditor() {
@@ -1405,11 +1704,68 @@ elements.signOutButton.addEventListener("click", async () => {
 });
 
 elements.bodyEditor.addEventListener("input", handleLiveEdit);
+elements.bodyEditor.addEventListener("dragstart", (event) => {
+  if (!(event.target instanceof Element)) {
+    return;
+  }
+
+  const chartElement = event.target.closest(`.${CHART_CLASS}`);
+  if (!(chartElement instanceof HTMLElement)) {
+    return;
+  }
+
+  draggedChartElement = chartElement;
+  selectChart(chartElement);
+  chartElement.classList.add("chart-block-dragging");
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", "chart");
+  }
+});
+elements.bodyEditor.addEventListener("dragover", (event) => {
+  if (!draggedChartElement) {
+    return;
+  }
+
+  event.preventDefault();
+  updateChartDropTarget(event.clientY);
+});
+elements.bodyEditor.addEventListener("drop", (event) => {
+  if (!draggedChartElement) {
+    return;
+  }
+
+  event.preventDefault();
+  updateChartDropTarget(event.clientY);
+
+  if (chartDropTarget instanceof HTMLElement) {
+    moveChartBlock(draggedChartElement, chartDropTarget, chartDropPosition);
+  } else {
+    moveChartToEnd(draggedChartElement);
+  }
+
+  draggedChartElement.classList.remove("chart-block-dragging");
+  clearChartDropMarker();
+  draggedChartElement = null;
+});
+elements.bodyEditor.addEventListener("dragend", () => {
+  clearChartDropMarker();
+  if (draggedChartElement?.isConnected) {
+    draggedChartElement.classList.remove("chart-block-dragging");
+  }
+  draggedChartElement = null;
+});
+elements.bodyEditor.addEventListener("keydown", (event) => {
+  if ((event.key === "Delete" || event.key === "Backspace") && deleteSelectedChart()) {
+    event.preventDefault();
+  }
+});
 ["mouseup", "keyup", "focus"].forEach((eventName) => {
   elements.bodyEditor.addEventListener(eventName, () => {
     updateToolbarSelectionState();
   });
 });
+elements.bodyEditor.addEventListener("mousedown", placeCaretFromPoint);
 
 elements.richToolbar.addEventListener("mousedown", (event) => {
   if (event.target.closest("select")) {
@@ -1466,25 +1822,6 @@ elements.chartMenuDropdown.addEventListener("click", (event) => {
 
   insertChartAtCursor(item.getAttribute("data-chart-type"));
   closeChartMenu();
-});
-
-elements.bodyEditor.addEventListener("click", (event) => {
-  if (!(event.target instanceof Element)) {
-    return;
-  }
-
-  const button = event.target.closest("button[data-chart-settings='true']");
-  if (!button) {
-    return;
-  }
-
-  event.preventDefault();
-  event.stopPropagation();
-
-  const chartElement = button.closest(`[${CHART_DATA_ATTRIBUTE}]`);
-  if (chartElement) {
-    openChartEditor(chartElement);
-  }
 });
 
 [

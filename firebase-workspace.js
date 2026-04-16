@@ -25,6 +25,9 @@ const CHART_CLASS = "chart-block";
 const CHART_DATA_ATTRIBUTE = "data-chart";
 const CHART_TYPES = ["bar", "line", "area", "donut"];
 const CHART_COLORS = ["#0c66e4", "#579dff", "#36b37e", "#f5cd47", "#e56910"];
+const BODY_TEXT_BLOCK_CLASS = "editor-text-block";
+const BODY_TEXT_BLOCK_ATTRIBUTE = "data-block-type";
+const BODY_TEXT_BLOCK_VALUE = "text";
 
 const defaultPages = [
   {
@@ -128,9 +131,10 @@ const chartEditorState = {
 
 let selectedChartElement = null;
 let draggedChartElement = null;
-let chartDropTarget = null;
-let chartDropPosition = "before";
+let chartDropReferenceNode = null;
 let chartDropIndicator = null;
+let chartDropRange = null;
+let chartResizeState = null;
 
 const elements = {
   pageList: document.querySelector("#page-list"),
@@ -300,7 +304,8 @@ function filteredPages() {
   return state.pages.filter((page) => {
     const haystack = [
       page.title,
-      page.body
+      page.body,
+      textFromBodyBlocks(page.bodyBlocks || [])
     ]
       .join(" ")
       .toLowerCase();
@@ -437,7 +442,8 @@ function defaultChartStyle() {
     accentColor: "#0c66e4",
     accentSecondary: "#579dff",
     trackColor: "#eceff1",
-    legendPosition: "right"
+    legendPosition: "right",
+    widthPercent: 100
   };
 }
 
@@ -482,7 +488,8 @@ function normalizeChartStyle(style = {}) {
     accentColor: String(style.accentColor || defaults.accentColor),
     accentSecondary: String(style.accentSecondary || defaults.accentSecondary),
     trackColor: String(style.trackColor || defaults.trackColor),
-    legendPosition: style.legendPosition === "bottom" ? "bottom" : "right"
+    legendPosition: style.legendPosition === "bottom" ? "bottom" : "right",
+    widthPercent: clampNumber(style.widthPercent, 35, 100, defaults.widthPercent)
   };
 }
 
@@ -664,29 +671,34 @@ function chartInlineStyle(chart) {
     `background:${style.surfaceColor}`,
     `border-color:${style.borderColor}`,
     `color:${style.textColor}`,
-    `--chart-muted:${style.mutedColor}`
+    `--chart-muted:${style.mutedColor}`,
+    `width:${style.widthPercent}%`
   ].join("; ");
 }
 
 function buildChartBlockMarkup(data, mode = "editor") {
   const chart = normalizeChartData(data);
-  const settingsButton = mode === "editor"
-      ? '<button class="button button-secondary chart-settings-button" type="button" data-chart-settings="true" aria-label="Edit chart settings">&#9881;</button>'
+    const settingsButton = mode === "editor"
+        ? '<button class="button button-secondary chart-settings-button" type="button" data-chart-settings="true" aria-label="Edit chart settings">&#9881;</button>'
+        : "";
+    const draggable = mode === "editor" ? ' draggable="true"' : "";
+    const resizeHandle = mode === "editor"
+      ? '<button class="chart-resize-handle" type="button" data-chart-resize="true" aria-label="Resize chart"></button>'
       : "";
-  const draggable = mode === "editor" ? ' draggable="true"' : "";
 
-  return `
-    <div class="${CHART_CLASS}" ${CHART_DATA_ATTRIBUTE}="${encodeChartData(chart)}" contenteditable="false"${draggable} style="${chartInlineStyle(chart)}">
-      <div class="chart-block-header">
+    return `
+      <div class="${CHART_CLASS}" ${CHART_DATA_ATTRIBUTE}="${encodeChartData(chart)}" contenteditable="false"${draggable} style="${chartInlineStyle(chart)}">
+        <div class="chart-block-header">
         <div>
           ${chart.style.showTitle ? `<h3 class="chart-block-title" style="font-size:${chart.style.titleSize}px">${escapeHtml(chart.title)}</h3>` : ""}
           ${chart.subtitle ? `<p class="chart-block-subtitle" style="color:${chart.style.mutedColor}; font-size:${chart.style.labelSize}px">${escapeHtml(chart.subtitle)}</p>` : ""}
         </div>
         ${settingsButton}
+        </div>
+        ${chartVisualizationMarkup(chart)}
+        ${resizeHandle}
       </div>
-      ${chartVisualizationMarkup(chart)}
-    </div>
-  `;
+    `;
 }
 
 function enhanceCharts(root, mode = "published") {
@@ -777,6 +789,8 @@ function replaceEditedChart(nextChart) {
     return;
   }
 
+  nextElement.setAttribute("data-block-id", previousElement.getAttribute("data-block-id") || blockId("chart"));
+
   previousElement.replaceWith(nextElement);
   chartEditorState.chartElement = nextElement;
   if (selectedChartElement === previousElement) {
@@ -785,6 +799,204 @@ function replaceEditedChart(nextChart) {
   } else if (selectedChartElement?.isConnected === false) {
     selectedChartElement = null;
   }
+}
+
+function setChartElementData(chartElement, nextChart) {
+  if (!(chartElement instanceof HTMLElement)) {
+    return;
+  }
+
+  const chart = normalizeChartData(nextChart);
+  chartElement.setAttribute(CHART_DATA_ATTRIBUTE, encodeChartData(chart));
+  chartElement.setAttribute("style", chartInlineStyle(chart));
+}
+
+function blockId(prefix = "block") {
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function makeTextBlock(html = "<p></p>") {
+  return {
+    id: blockId("text"),
+    type: "text",
+    html: String(html || "").trim() || "<p></p>"
+  };
+}
+
+function makeChartBlock(chart) {
+  return {
+    id: blockId("chart"),
+    type: "chart",
+    chart: normalizeChartData(chart)
+  };
+}
+
+function normalizeBodyBlocks(page = {}) {
+  if (Array.isArray(page.bodyBlocks) && page.bodyBlocks.length) {
+    return page.bodyBlocks.map((block) => {
+      if (block?.type === "chart") {
+        return {
+          id: block.id || blockId("chart"),
+          type: "chart",
+          chart: normalizeChartData(block.chart)
+        };
+      }
+
+      return {
+        id: block?.id || blockId("text"),
+        type: "text",
+        html: String(block?.html || "").trim() || "<p></p>"
+      };
+    });
+  }
+
+  return sourceToBodyBlocks(page.body);
+}
+
+function textBlockMarkup(block) {
+  const html = String(block?.html || "").trim() || "<p></p>";
+  return `<div class="${BODY_TEXT_BLOCK_CLASS}" ${BODY_TEXT_BLOCK_ATTRIBUTE}="${BODY_TEXT_BLOCK_VALUE}" data-block-id="${escapeHtml(block.id || blockId("text"))}" contenteditable="true">${html}</div>`;
+}
+
+function sourceToBodyBlocks(source) {
+  const trimmed = String(source || "").trim();
+  const container = document.createElement("div");
+  if (!trimmed) {
+    container.innerHTML = "<p></p>";
+  } else if (/<[a-z][\s\S]*>/i.test(trimmed)) {
+    container.innerHTML = trimmed;
+  } else {
+    container.innerHTML = renderMarkdown(trimmed);
+  }
+
+  return bodyBlocksFromContainer(container);
+}
+
+function bodyBlocksFromContainer(container) {
+  const blocks = [];
+  let textNodes = [];
+  const flushTextNodes = () => {
+    if (!textNodes.length) {
+      return;
+    }
+
+    const wrapper = document.createElement("div");
+    textNodes.forEach((node) => wrapper.appendChild(node));
+    const html = wrapper.innerHTML.trim();
+    blocks.push(makeTextBlock(html || "<p></p>"));
+    textNodes = [];
+  };
+
+  Array.from(container.childNodes).forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE && !node.textContent.trim()) {
+      return;
+    }
+
+    if (node.nodeType === Node.ELEMENT_NODE && node instanceof HTMLElement && node.hasAttribute(CHART_DATA_ATTRIBUTE)) {
+      flushTextNodes();
+      blocks.push(makeChartBlock(decodeChartData(node.getAttribute(CHART_DATA_ATTRIBUTE))));
+      return;
+    }
+
+    textNodes.push(node.cloneNode(true));
+  });
+
+  flushTextNodes();
+  return blocks.length ? blocks : [makeTextBlock()];
+}
+
+function bodyBlocksToStorageHtml(blocks) {
+  return blocks.map((block) => {
+    if (block.type === "chart") {
+      return `<div ${CHART_DATA_ATTRIBUTE}="${encodeChartData(block.chart)}"></div>`;
+    }
+
+    return String(block.html || "").trim() || "<p></p>";
+  }).join("");
+}
+
+function bodyBlocksToRenderedHtml(blocks, mode = "published") {
+  return blocks.map((block) => {
+    if (block.type === "chart") {
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = buildChartBlockMarkup(block.chart, mode);
+      const element = wrapper.firstElementChild;
+      if (element) {
+        element.setAttribute("data-block-id", block.id || blockId("chart"));
+        return wrapper.innerHTML;
+      }
+      return "";
+    }
+
+    return mode === "editor" ? textBlockMarkup(block) : (String(block.html || "").trim() || "<p></p>");
+  }).join("");
+}
+
+function textFromBodyBlocks(blocks) {
+  return blocks.map((block) => {
+    if (block.type === "chart") {
+      const chart = normalizeChartData(block.chart);
+      return [chart.title, chart.subtitle, ...chart.series.map((item) => item.label)].join(" ");
+    }
+
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = block.html || "";
+    return wrapper.textContent || "";
+  }).join(" ");
+}
+
+function editorTextBlocks() {
+  return Array.from(elements.bodyEditor.querySelectorAll(`[${BODY_TEXT_BLOCK_ATTRIBUTE}="${BODY_TEXT_BLOCK_VALUE}"]`));
+}
+
+function closestTextBlock(node) {
+  const element = node?.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+  return element?.closest?.(`[${BODY_TEXT_BLOCK_ATTRIBUTE}="${BODY_TEXT_BLOCK_VALUE}"]`) || null;
+}
+
+function ensureEditorTextBlock() {
+  const existing = editorTextBlocks().at(-1);
+  if (existing) {
+    return existing;
+  }
+
+  const block = document.createElement("div");
+  block.className = BODY_TEXT_BLOCK_CLASS;
+  block.setAttribute(BODY_TEXT_BLOCK_ATTRIBUTE, BODY_TEXT_BLOCK_VALUE);
+  block.setAttribute("data-block-id", blockId("text"));
+  block.setAttribute("contenteditable", "true");
+  block.innerHTML = "<p></p>";
+  elements.bodyEditor.appendChild(block);
+  return block;
+}
+
+function editorBodyBlocks() {
+  const blocks = Array.from(elements.bodyEditor.children).flatMap((element) => {
+    if (!(element instanceof HTMLElement)) {
+      return [];
+    }
+
+    if (element.matches(`[${BODY_TEXT_BLOCK_ATTRIBUTE}="${BODY_TEXT_BLOCK_VALUE}"]`)) {
+      const html = element.innerHTML.replaceAll("\u200B", "").trim() || "<p></p>";
+      return [{
+        id: element.getAttribute("data-block-id") || blockId("text"),
+        type: "text",
+        html
+      }];
+    }
+
+    if (element.classList.contains(CHART_CLASS)) {
+      return [{
+        id: element.getAttribute("data-block-id") || blockId("chart"),
+        type: "chart",
+        chart: decodeChartData(element.getAttribute(CHART_DATA_ATTRIBUTE))
+      }];
+    }
+
+    return [];
+  });
+
+  return blocks.length ? blocks : [makeTextBlock()];
 }
 
 function clearSelectedChart() {
@@ -809,21 +1021,8 @@ function selectChart(chartElement) {
   selectedChartElement.classList.add("chart-block-selected");
 }
 
-function chartTrailingParagraph(chartElement) {
-  const nextBlock = chartElement?.nextElementSibling;
-  return nextBlock instanceof HTMLParagraphElement ? nextBlock : null;
-}
-
 function chartDraggedNodes(chartElement = draggedChartElement) {
-  const nodes = [];
-  if (chartElement instanceof HTMLElement) {
-    nodes.push(chartElement);
-    const trailingParagraph = chartTrailingParagraph(chartElement);
-    if (trailingParagraph) {
-      nodes.push(trailingParagraph);
-    }
-  }
-  return nodes;
+  return chartElement instanceof HTMLElement ? [chartElement] : [];
 }
 
 function isChartDraggedNode(node) {
@@ -831,8 +1030,8 @@ function isChartDraggedNode(node) {
 }
 
 function clearChartDropMarker() {
-  chartDropTarget = null;
-  chartDropPosition = "before";
+  chartDropReferenceNode = null;
+  chartDropRange = null;
   if (chartDropIndicator) {
     chartDropIndicator.remove();
     chartDropIndicator = null;
@@ -852,157 +1051,218 @@ function ensureChartDropIndicator() {
 }
 
 function bodyDropBlocks() {
-  return Array.from(elements.bodyEditor.children).filter((element) => !isChartDraggedNode(element));
+  return Array.from(elements.bodyEditor.children).filter((element) => {
+    if (!(element instanceof HTMLElement)) {
+      return false;
+    }
+
+    if (isChartDraggedNode(element)) {
+      return false;
+    }
+
+    return element.classList.contains(CHART_CLASS)
+      || element.matches(`[${BODY_TEXT_BLOCK_ATTRIBUTE}="${BODY_TEXT_BLOCK_VALUE}"]`);
+  });
 }
 
-function setChartDropMarker(target, position) {
-  if (!(target instanceof HTMLElement)) {
+function setChartDropMarker(referenceNode, offsetTop) {
+  if (!(referenceNode instanceof HTMLElement) && referenceNode !== null) {
     clearChartDropMarker();
     return;
   }
 
-  if (chartDropTarget === target && chartDropPosition === position) {
+  if (chartDropReferenceNode === referenceNode && chartDropIndicator?.isConnected && chartDropIndicator.style.top === `${Math.max(0, offsetTop - 1)}px`) {
     return;
   }
 
-  chartDropTarget = target;
-  chartDropPosition = position;
-  const editorRect = elements.bodyEditor.getBoundingClientRect();
-  const targetRect = target.getBoundingClientRect();
-  const offsetTop = position === "after"
-    ? (targetRect.bottom - editorRect.top + elements.bodyEditor.scrollTop)
-    : (targetRect.top - editorRect.top + elements.bodyEditor.scrollTop);
-
+  chartDropReferenceNode = referenceNode;
   const indicator = ensureChartDropIndicator();
   indicator.hidden = false;
   indicator.style.top = `${Math.max(0, offsetTop - 1)}px`;
 }
 
-function updateChartDropTarget(clientY) {
-  const blocks = bodyDropBlocks();
-  if (!blocks.length) {
+function pointCaretRange(clientX, clientY) {
+  const caretPosition = document.caretPositionFromPoint?.(clientX, clientY);
+  if (caretPosition?.offsetNode) {
+    const range = document.createRange();
+    range.setStart(caretPosition.offsetNode, caretPosition.offset);
+    range.collapse(true);
+    return range;
+  }
+
+  const caretRange = document.caretRangeFromPoint?.(clientX, clientY);
+  if (caretRange) {
+    caretRange.collapse(true);
+    return caretRange;
+  }
+
+  return null;
+}
+
+function rangeLineOffsetTop(range, fallbackElement) {
+  const editorRect = elements.bodyEditor.getBoundingClientRect();
+  const scrollTop = elements.bodyEditor.scrollTop;
+  const rects = range.getClientRects();
+  const rect = rects.length ? rects[0] : range.getBoundingClientRect();
+  const fallbackRect = fallbackElement.getBoundingClientRect();
+  const top = rect.height ? rect.top : fallbackRect.top;
+  return top - editorRect.top + scrollTop;
+}
+
+function bodyDropGroups() {
+  return bodyDropBlocks().map((block) => ({ first: block, last: block }));
+}
+
+function bodyDropSlots() {
+  const editorRect = elements.bodyEditor.getBoundingClientRect();
+  const scrollTop = elements.bodyEditor.scrollTop;
+  const groups = bodyDropGroups();
+
+  if (!groups.length) {
+    return [{
+      referenceNode: null,
+      viewportY: editorRect.top + 12,
+      offsetTop: 12 + scrollTop
+    }];
+  }
+
+  const slots = groups.map((group) => {
+    const rect = group.first.getBoundingClientRect();
+    return {
+      referenceNode: group.first,
+      viewportY: rect.top,
+      offsetTop: rect.top - editorRect.top + scrollTop
+    };
+  });
+
+  const lastRect = groups.at(-1).last.getBoundingClientRect();
+  slots.push({
+    referenceNode: null,
+    viewportY: lastRect.bottom,
+    offsetTop: lastRect.bottom - editorRect.top + scrollTop
+  });
+
+  return slots;
+}
+
+function updateChartDropTarget(clientX, clientY) {
+  const pointElement = document.elementFromPoint(clientX, clientY);
+  const textBlock = closestTextBlock(pointElement);
+  if (textBlock instanceof HTMLElement) {
+    const range = pointCaretRange(clientX, clientY);
+    if (range && textBlock.contains(range.startContainer)) {
+      chartDropRange = range.cloneRange();
+      setChartDropMarker(textBlock, rangeLineOffsetTop(chartDropRange, textBlock));
+      return;
+    }
+
+    chartDropRange = null;
+    setChartDropMarker(textBlock, rangeLineOffsetTop(document.createRange(), textBlock));
+    return;
+  }
+
+  chartDropRange = null;
+  const slots = bodyDropSlots();
+  if (!slots.length) {
     clearChartDropMarker();
     return;
   }
 
-  let bestBlock = blocks[0];
+  let bestSlot = slots[0];
   let bestDistance = Number.POSITIVE_INFINITY;
 
-  blocks.forEach((block) => {
-    const rect = block.getBoundingClientRect();
-    const midpoint = rect.top + rect.height / 2;
-    const distance = Math.abs(clientY - midpoint);
+  slots.forEach((slot) => {
+    const distance = Math.abs(clientY - slot.viewportY);
     if (distance < bestDistance) {
       bestDistance = distance;
-      bestBlock = block;
+      bestSlot = slot;
     }
   });
 
-  const rect = bestBlock.getBoundingClientRect();
-  const position = clientY >= rect.top + rect.height / 2 ? "after" : "before";
-  setChartDropMarker(bestBlock, position);
+  setChartDropMarker(bestSlot.referenceNode, bestSlot.offsetTop);
 }
 
-function moveChartFragmentBefore(chartElement, destination) {
-  if (!(chartElement instanceof HTMLElement) || !(destination instanceof HTMLElement)) {
-    return false;
-  }
-
-  const trailingParagraph = chartTrailingParagraph(chartElement);
-  const fragment = document.createDocumentFragment();
-  fragment.appendChild(chartElement);
-  if (trailingParagraph) {
-    fragment.appendChild(trailingParagraph);
-  }
-  destination.before(fragment);
-  selectChart(chartElement);
-  handleLiveEdit();
-  return true;
-}
-
-function moveChartFragmentAfter(chartElement, destination) {
-  if (!(chartElement instanceof HTMLElement) || !(destination instanceof HTMLElement)) {
-    return false;
-  }
-
-  const trailingParagraph = chartTrailingParagraph(chartElement);
-  const fragment = document.createDocumentFragment();
-  fragment.appendChild(chartElement);
-  if (trailingParagraph) {
-    fragment.appendChild(trailingParagraph);
-  } else {
-    fragment.appendChild(createChartTrailingParagraph());
-  }
-
-  const destinationTrailing = chartTrailingParagraph(destination);
-  if (destinationTrailing) {
-    destinationTrailing.after(fragment);
-  } else {
-    destination.after(fragment);
-  }
-
-  selectChart(chartElement);
-  handleLiveEdit();
-  return true;
-}
-
-function moveChartBlock(chartElement, destination, position = "before") {
-  if (!(chartElement instanceof HTMLElement) || !(destination instanceof HTMLElement) || chartElement === destination) {
-    return false;
-  }
-
-  if (isChartDraggedNode(destination)) {
-    return false;
-  }
-
-  if (position === "after") {
-    return moveChartFragmentAfter(chartElement, destination);
-  }
-
-  return moveChartFragmentBefore(chartElement, destination);
-}
-
-function moveChartToEnd(chartElement) {
+function moveChartToReference(chartElement, referenceNode = null) {
   if (!(chartElement instanceof HTMLElement)) {
     return false;
   }
 
-  const trailingParagraph = chartTrailingParagraph(chartElement);
-  const fragment = document.createDocumentFragment();
-  fragment.appendChild(chartElement);
-  if (trailingParagraph) {
-    fragment.appendChild(trailingParagraph);
+  if (referenceNode instanceof HTMLElement) {
+    if (isChartDraggedNode(referenceNode)) {
+      return false;
+    }
+    referenceNode.before(chartElement);
   } else {
-    fragment.appendChild(createChartTrailingParagraph());
+    elements.bodyEditor.appendChild(chartElement);
   }
 
-  elements.bodyEditor.appendChild(fragment);
   selectChart(chartElement);
   handleLiveEdit();
   return true;
 }
 
+function insertChartAtTextRange(chartElement, textBlock, range) {
+  if (!(chartElement instanceof HTMLElement) || !(textBlock instanceof HTMLElement) || !range) {
+    return false;
+  }
+
+  const safeRange = range.cloneRange();
+  if (!textBlock.contains(safeRange.startContainer)) {
+    return false;
+  }
+
+  const beforeRange = document.createRange();
+  beforeRange.selectNodeContents(textBlock);
+  beforeRange.setEnd(safeRange.startContainer, safeRange.startOffset);
+
+  const afterRange = document.createRange();
+  afterRange.selectNodeContents(textBlock);
+  afterRange.setStart(safeRange.startContainer, safeRange.startOffset);
+
+  const beforeWrapper = document.createElement("div");
+  beforeWrapper.appendChild(beforeRange.cloneContents());
+  const afterWrapper = document.createElement("div");
+  afterWrapper.appendChild(afterRange.cloneContents());
+
+  const beforeHtml = beforeWrapper.innerHTML.replaceAll("\u200B", "").trim();
+  const afterHtml = afterWrapper.innerHTML.replaceAll("\u200B", "").trim();
+
+  const fragment = document.createDocumentFragment();
+  if (beforeHtml) {
+    const beforeBlock = textBlock.cloneNode(false);
+    beforeBlock.innerHTML = beforeHtml;
+    fragment.appendChild(beforeBlock);
+  }
+
+  fragment.appendChild(chartElement);
+
+  const afterBlock = textBlock.cloneNode(false);
+  afterBlock.innerHTML = afterHtml || "<p></p>";
+  fragment.appendChild(afterBlock);
+
+  textBlock.replaceWith(fragment);
+  selectChart(chartElement);
+  handleLiveEdit();
+  return true;
+}
+
+function moveChartToEnd(chartElement) {
+  return moveChartToReference(chartElement, null);
+}
+
 function renderStoredBody(body) {
-  const source = String(body || "").trim();
-  const container = document.createElement("div");
-  if (!source) {
-    container.innerHTML = "<p></p>";
-    return container.innerHTML;
-  }
+  const blocks = Array.isArray(body) ? normalizeBodyBlocks({ bodyBlocks: body }) : sourceToBodyBlocks(body);
+  return blocks.map((block) => {
+    if (block.type === "chart") {
+      return buildChartBlockMarkup(block.chart, "published");
+    }
 
-  if (/<[a-z][\s\S]*>/i.test(source)) {
-    container.innerHTML = source;
-  } else {
-    container.innerHTML = renderMarkdown(source);
-  }
-
-  enhanceCharts(container, "published");
-  return container.innerHTML;
+    return String(block.html || "").trim() || "<p></p>";
+  }).join("");
 }
 
 function getEditorBodyHtml() {
-  const html = elements.bodyEditor.innerHTML.replaceAll("\u200B", "").trim();
-  return html || "<p></p>";
+  return bodyBlocksToStorageHtml(editorBodyBlocks());
 }
 
 function selectionInsideEditor() {
@@ -1029,14 +1289,15 @@ function selectionTarget() {
     return liveTarget;
   }
 
-  elements.bodyEditor.focus();
+  const textBlock = ensureEditorTextBlock();
+  textBlock.focus();
   const selection = window.getSelection();
   if (!selection) {
     return null;
   }
 
   const range = document.createRange();
-  range.selectNodeContents(elements.bodyEditor);
+  range.selectNodeContents(textBlock);
   range.collapse(false);
   selection.removeAllRanges();
   selection.addRange(range);
@@ -1105,7 +1366,7 @@ function updateToolbarSelectionState() {
     ? (liveTarget.range.startContainer.nodeType === Node.TEXT_NODE
         ? liveTarget.range.startContainer.parentNode
         : liveTarget.range.startContainer)
-    : elements.bodyEditor;
+    : ensureEditorTextBlock();
   const computedStyle = window.getComputedStyle(container);
 
   elements.fontFamilySelect.value = closestSelectValue(
@@ -1117,18 +1378,23 @@ function updateToolbarSelectionState() {
 }
 
 function normalizePage(page) {
+  const bodyBlocks = normalizeBodyBlocks(page);
+  const body = page.body || bodyBlocksToStorageHtml(bodyBlocks);
   return {
     id: page.id,
     title: page.title || "Untitled page",
     category: page.category || "Reference",
     tags: Array.isArray(page.tags) ? page.tags : [],
     summary: page.summary || "",
-    body: page.body || "",
+    body,
+    bodyBlocks,
     createdAt: page.createdAt || null,
     updatedAt: page.updatedAt || null,
     updatedBy: page.updatedBy || ""
   };
 }
+
+state.pages = state.pages.map(normalizePage);
 
 function renderPageList() {
   const pages = filteredPages();
@@ -1163,17 +1429,7 @@ function renderEditor() {
   chartEditorState.chartElement = null;
   chartEditorState.originalChart = null;
   clearSelectedChart();
-  const source = String(page.body || "").trim();
-  const container = document.createElement("div");
-  if (!source) {
-    container.innerHTML = "<p></p>";
-  } else if (/<[a-z][\s\S]*>/i.test(source)) {
-    container.innerHTML = source;
-  } else {
-    container.innerHTML = renderMarkdown(source);
-  }
-  enhanceCharts(container, "editor");
-  elements.bodyEditor.innerHTML = container.innerHTML;
+  elements.bodyEditor.innerHTML = bodyBlocksToRenderedHtml(page.bodyBlocks || [makeTextBlock()], "editor");
   elements.deletePageButton.disabled = state.pages.length === 1 || (state.syncMode === "firebase" && !state.user);
   updateToolbarSelectionState();
 }
@@ -1185,7 +1441,7 @@ function renderPublishedPage() {
   }
 
   elements.publishedTitle.textContent = page.title || "Untitled page";
-  elements.publishedBody.innerHTML = renderStoredBody(page.body);
+  elements.publishedBody.innerHTML = renderStoredBody(page.bodyBlocks || page.body);
 }
 
 function renderRouteLinks() {
@@ -1237,25 +1493,27 @@ function uniqueIdFromTitle(title) {
 function buildPageFromForm(existingId = null) {
   const active = getActivePage();
   const title = active?.title || "Untitled page";
+  const bodyBlocks = editorBodyBlocks();
   return {
     id: existingId || uniqueIdFromTitle(title),
     title,
     category: active?.category || "Reference",
     tags: active?.tags || [],
     summary: active?.summary || "",
-    body: getEditorBodyHtml()
+    body: bodyBlocksToStorageHtml(bodyBlocks),
+    bodyBlocks
   };
 }
 
 async function createBlankPage() {
-  const page = {
+  const page = normalizePage({
     id: uniqueIdFromTitle("Untitled page"),
     title: "Untitled page",
     category: "Reference",
     tags: ["new"],
     summary: "Describe what this page covers.",
     body: "# Untitled page\n\nStart writing here."
-  };
+  });
 
   if (state.syncMode === "firebase") {
     if (!state.user) {
@@ -1278,11 +1536,11 @@ async function createBlankPage() {
 
 async function duplicateActivePage() {
   const active = getActivePage();
-  const page = {
+  const page = normalizePage({
     ...active,
     id: uniqueIdFromTitle(`${active.title} copy`),
     title: `${active.title} copy`
-  };
+  });
 
   if (state.syncMode === "firebase") {
     if (!state.user) {
@@ -1377,7 +1635,7 @@ function handleLiveEdit() {
     return;
   }
 
-  if (active.body !== getEditorBodyHtml()) {
+  if (active.body !== bodyBlocksToStorageHtml(editorBodyBlocks())) {
     renderSaveState("Unsaved");
   }
 }
@@ -1390,6 +1648,33 @@ function closeChartMenu() {
   chartEditorState.open = false;
   elements.chartMenuDropdown.hidden = true;
   elements.chartMenuTrigger.setAttribute("aria-expanded", "false");
+}
+
+function resizeChartFromPointer(clientX) {
+  if (!chartResizeState?.chartElement?.isConnected) {
+    return;
+  }
+
+  const deltaX = clientX - chartResizeState.startClientX;
+  const nextWidth = chartResizeState.startWidth + deltaX;
+  const percent = Math.min(
+    100,
+    Math.max(35, (nextWidth / chartResizeState.editorWidth) * 100)
+  );
+  const chart = decodeChartData(chartResizeState.chartElement.getAttribute(CHART_DATA_ATTRIBUTE));
+  chart.style.widthPercent = percent;
+  setChartElementData(chartResizeState.chartElement, chart);
+}
+
+function endChartResize() {
+  if (!chartResizeState?.chartElement?.isConnected) {
+    chartResizeState = null;
+    return;
+  }
+
+  chartResizeState.chartElement.classList.remove("chart-block-resizing");
+  handleLiveEdit();
+  chartResizeState = null;
 }
 
 function openChartMenu() {
@@ -1407,21 +1692,19 @@ function toggleChartMenu() {
   openChartMenu();
 }
 
-function createChartTrailingParagraph() {
-  const paragraph = document.createElement("p");
-  paragraph.appendChild(document.createTextNode("\u200B"));
-  return paragraph;
-}
+function focusTextBlockStart(block) {
+  if (!(block instanceof HTMLElement)) {
+    return;
+  }
 
-function focusParagraphStart(paragraph) {
-  elements.bodyEditor.focus();
+  block.focus();
   const selection = window.getSelection();
   if (!selection) {
     return;
   }
 
   const range = document.createRange();
-  const anchor = paragraph.firstChild || paragraph;
+  const anchor = block.firstChild || block;
   range.setStart(anchor, 0);
   range.collapse(true);
   selection.removeAllRanges();
@@ -1443,14 +1726,7 @@ function placeCaretAfterNode(node) {
 }
 
 function ensureTrailingEditorParagraph() {
-  const lastElement = elements.bodyEditor.lastElementChild;
-  if (lastElement instanceof HTMLParagraphElement) {
-    return lastElement;
-  }
-
-  const paragraph = createChartTrailingParagraph();
-  elements.bodyEditor.appendChild(paragraph);
-  return paragraph;
+  return ensureEditorTextBlock();
 }
 
 function placeCaretFromPoint(event) {
@@ -1472,20 +1748,18 @@ function placeCaretFromPoint(event) {
   clearSelectedChart();
 
   const isEditorSurface = event.target === elements.bodyEditor;
-  const isParagraph = event.target.closest("p");
-  if (!isEditorSurface && !(isParagraph instanceof HTMLParagraphElement)) {
+  const textBlock = closestTextBlock(event.target);
+  if (!isEditorSurface && !(textBlock instanceof HTMLElement)) {
     return;
   }
 
-  if (isParagraph instanceof HTMLParagraphElement) {
-    event.preventDefault();
-    focusParagraphStart(isParagraph);
+  if (textBlock instanceof HTMLElement) {
     return;
   }
 
   const trailingParagraph = ensureTrailingEditorParagraph();
   event.preventDefault();
-  focusParagraphStart(trailingParagraph);
+  focusTextBlockStart(trailingParagraph);
 }
 
 function insertChartAtCursor(chartType = "bar") {
@@ -1496,19 +1770,45 @@ function insertChartAtCursor(chartType = "bar") {
 
   const target = selectionTarget();
   if (!target || !chartNode) {
-    const trailingParagraph = createChartTrailingParagraph();
-    elements.bodyEditor.append(chartNode, trailingParagraph);
-    focusParagraphStart(trailingParagraph);
+    const textBlock = ensureEditorTextBlock();
+    textBlock.after(chartNode);
+    selectChart(chartNode);
     handleLiveEdit();
     return;
   }
 
-  target.range.deleteContents();
-  target.range.insertNode(chartNode);
+  const textBlock = closestTextBlock(target.range.startContainer) || ensureEditorTextBlock();
+  const beforeRange = document.createRange();
+  beforeRange.selectNodeContents(textBlock);
+  beforeRange.setEnd(target.range.startContainer, target.range.startOffset);
 
-  const trailingParagraph = createChartTrailingParagraph();
-  chartNode.insertAdjacentElement("afterend", trailingParagraph);
-  focusParagraphStart(trailingParagraph);
+  const afterRange = document.createRange();
+  afterRange.selectNodeContents(textBlock);
+  afterRange.setStart(target.range.endContainer, target.range.endOffset);
+
+  const beforeWrapper = document.createElement("div");
+  beforeWrapper.appendChild(beforeRange.cloneContents());
+  const afterWrapper = document.createElement("div");
+  afterWrapper.appendChild(afterRange.cloneContents());
+
+  const beforeHtml = beforeWrapper.innerHTML.replaceAll("\u200B", "").trim();
+  const afterHtml = afterWrapper.innerHTML.replaceAll("\u200B", "").trim();
+  const beforeBlock = beforeHtml ? textBlock.cloneNode(false) : null;
+  const afterBlock = afterHtml ? textBlock.cloneNode(false) : textBlock.cloneNode(false);
+
+  if (beforeBlock) {
+    beforeBlock.innerHTML = beforeHtml;
+  }
+  afterBlock.innerHTML = afterHtml || "<p></p>";
+
+  const fragment = document.createDocumentFragment();
+  if (beforeBlock) {
+    fragment.appendChild(beforeBlock);
+  }
+  fragment.appendChild(chartNode);
+  fragment.appendChild(afterBlock);
+  textBlock.replaceWith(fragment);
+  focusTextBlockStart(afterBlock);
   handleLiveEdit();
 }
 
@@ -1547,14 +1847,13 @@ function deleteSelectedChart() {
   clearSelectedChart();
   chartToRemove.remove();
 
-  if (nextBlock instanceof HTMLParagraphElement) {
-    focusParagraphStart(nextBlock);
-  } else if (previousBlock instanceof HTMLParagraphElement) {
-    focusParagraphStart(previousBlock);
+  if (nextBlock instanceof HTMLElement && nextBlock.matches(`[${BODY_TEXT_BLOCK_ATTRIBUTE}="${BODY_TEXT_BLOCK_VALUE}"]`)) {
+    focusTextBlockStart(nextBlock);
+  } else if (previousBlock instanceof HTMLElement && previousBlock.matches(`[${BODY_TEXT_BLOCK_ATTRIBUTE}="${BODY_TEXT_BLOCK_VALUE}"]`)) {
+    focusTextBlockStart(previousBlock);
   } else {
-    const trailingParagraph = createChartTrailingParagraph();
-    elements.bodyEditor.appendChild(trailingParagraph);
-    focusParagraphStart(trailingParagraph);
+    const trailingParagraph = ensureEditorTextBlock();
+    focusTextBlockStart(trailingParagraph);
   }
 
   closeChartEditor({ revert: false });
@@ -1622,12 +1921,12 @@ function connectFirebase() {
       unsubscribePages = null;
     }
 
-    if (!user) {
-      state.pages = loadLocalPages();
-      state.activePageId = state.pages[0]?.id ?? null;
-      renderAll();
-      return;
-    }
+      if (!user) {
+        state.pages = loadLocalPages().map(normalizePage);
+        state.activePageId = state.pages[0]?.id ?? null;
+        renderAll();
+        return;
+      }
 
     const pagesQuery = query(collection(db, "pages"), orderBy("title"));
     unsubscribePages = onSnapshot(pagesQuery, async (snapshot) => {
@@ -1709,6 +2008,11 @@ elements.bodyEditor.addEventListener("dragstart", (event) => {
     return;
   }
 
+  if (event.target.closest("[data-chart-resize='true']")) {
+    event.preventDefault();
+    return;
+  }
+
   const chartElement = event.target.closest(`.${CHART_CLASS}`);
   if (!(chartElement instanceof HTMLElement)) {
     return;
@@ -1728,7 +2032,7 @@ elements.bodyEditor.addEventListener("dragover", (event) => {
   }
 
   event.preventDefault();
-  updateChartDropTarget(event.clientY);
+  updateChartDropTarget(event.clientX, event.clientY);
 });
 elements.bodyEditor.addEventListener("drop", (event) => {
   if (!draggedChartElement) {
@@ -1736,10 +2040,14 @@ elements.bodyEditor.addEventListener("drop", (event) => {
   }
 
   event.preventDefault();
-  updateChartDropTarget(event.clientY);
+  updateChartDropTarget(event.clientX, event.clientY);
 
-  if (chartDropTarget instanceof HTMLElement) {
-    moveChartBlock(draggedChartElement, chartDropTarget, chartDropPosition);
+  if (chartDropReferenceNode instanceof HTMLElement
+      && chartDropReferenceNode.matches(`[${BODY_TEXT_BLOCK_ATTRIBUTE}="${BODY_TEXT_BLOCK_VALUE}"]`)
+      && chartDropRange) {
+    insertChartAtTextRange(draggedChartElement, chartDropReferenceNode, chartDropRange);
+  } else if (chartDropReferenceNode instanceof HTMLElement) {
+    moveChartToReference(draggedChartElement, chartDropReferenceNode);
   } else {
     moveChartToEnd(draggedChartElement);
   }
@@ -1759,6 +2067,35 @@ elements.bodyEditor.addEventListener("keydown", (event) => {
   if ((event.key === "Delete" || event.key === "Backspace") && deleteSelectedChart()) {
     event.preventDefault();
   }
+});
+elements.bodyEditor.addEventListener("pointerdown", (event) => {
+  if (!(event.target instanceof Element)) {
+    return;
+  }
+
+  const handle = event.target.closest("[data-chart-resize='true']");
+  if (!(handle instanceof HTMLElement)) {
+    return;
+  }
+
+  const chartElement = handle.closest(`.${CHART_CLASS}`);
+  if (!(chartElement instanceof HTMLElement)) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  selectChart(chartElement);
+
+  const editorWidth = elements.bodyEditor.clientWidth - 24;
+  chartResizeState = {
+    chartElement,
+    editorWidth: Math.max(editorWidth, 320),
+    startClientX: event.clientX,
+    startWidth: chartElement.getBoundingClientRect().width
+  };
+
+  chartElement.classList.add("chart-block-resizing");
 });
 ["mouseup", "keyup", "focus"].forEach((eventName) => {
   elements.bodyEditor.addEventListener(eventName, () => {
@@ -1853,6 +2190,20 @@ document.addEventListener("mousedown", (event) => {
   if (!event.target.closest("#chart-menu")) {
     closeChartMenu();
   }
+});
+document.addEventListener("pointermove", (event) => {
+  if (!chartResizeState) {
+    return;
+  }
+
+  resizeChartFromPointer(event.clientX);
+});
+document.addEventListener("pointerup", () => {
+  if (!chartResizeState) {
+    return;
+  }
+
+  endChartResize();
 });
 
 elements.chartCancelButton.addEventListener("click", () => closeChartEditor({ revert: true }));

@@ -356,6 +356,9 @@ p {
   line-height: 1.5;
   overflow-wrap: anywhere;
   position: relative;
+  display: grid;
+  align-content: start;
+  gap: 12px;
 }
 
 .body-editor:focus {
@@ -412,6 +415,21 @@ p {
   padding: 0;
 }
 
+.editor-text-block {
+  min-height: 1.6em;
+  outline: none;
+}
+
+.editor-text-block:focus {
+  outline: none;
+}
+
+.editor-text-block:empty::before {
+  content: "";
+  display: inline-block;
+  min-height: 1.35em;
+}
+
 .chart-block {
   margin: 1rem 0;
   border-radius: 12px;
@@ -424,6 +442,11 @@ p {
   cursor: grab;
 }
 
+.body-editor > .chart-block,
+.body-editor > .editor-text-block {
+  margin: 0;
+}
+
 .chart-block.chart-block-selected {
   border-color: rgba(12, 102, 228, 0.55);
   box-shadow: 0 0 0 2px rgba(12, 102, 228, 0.18);
@@ -432,6 +455,11 @@ p {
 .chart-block.chart-block-dragging {
   opacity: 0.55;
   cursor: grabbing;
+}
+
+.chart-block.chart-block-resizing {
+  cursor: ew-resize;
+  user-select: none;
 }
 
 .chart-drop-indicator {
@@ -443,6 +471,35 @@ p {
   border-radius: 999px;
   pointer-events: none;
   z-index: 20;
+}
+
+.chart-resize-handle {
+  position: absolute;
+  top: 12px;
+  right: 0;
+  bottom: 12px;
+  width: 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: ew-resize;
+}
+
+.chart-resize-handle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 42px;
+  border-radius: 999px;
+  background: rgba(94, 108, 132, 0.28);
+}
+
+.chart-block:hover .chart-resize-handle::before,
+.chart-block.chart-block-selected .chart-resize-handle::before {
+  background: rgba(12, 102, 228, 0.42);
 }
 
 .chart-block-header {

@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#f2efe8">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="workspace.css">
 </head>
 <body>
@@ -46,56 +46,50 @@
     </aside>
 
     <main class="content-column">
-      <section class="route-toolbar card" id="route-toolbar">
-        <div class="route-actions">
-          <a class="button button-secondary" id="page-route-link" href="#/page/home-dashboard">Open page</a>
-          <a class="button button-secondary" id="edit-route-link" href="#/edit/home-dashboard">Edit page</a>
+      <div class="editor-toolbar-bar">
+        <div class="rich-toolbar" id="rich-toolbar">
+          <button class="button button-secondary toolbar-button toolbar-button-icon" data-format="bold" type="button" aria-label="Bold"><strong>B</strong></button>
+          <button class="button button-secondary toolbar-button toolbar-button-icon" data-format="italic" type="button" aria-label="Italic"><em>I</em></button>
+          <label class="toolbar-select-wrap" aria-label="Font family">
+            <span class="toolbar-select-label">Font</span>
+            <select class="toolbar-select" id="font-family-select">
+              <option value="'Space Grotesk', sans-serif">Space Grotesk</option>
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="'Times New Roman', serif">Times New Roman</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="'Courier New', monospace">Courier New</option>
+              <option value="Verdana, sans-serif">Verdana</option>
+            </select>
+          </label>
+          <label class="toolbar-select-wrap" aria-label="Font size">
+            <span class="toolbar-select-label">Font size</span>
+            <select class="toolbar-select" id="font-size-select">
+              <option value="14px">14</option>
+              <option value="16px">16</option>
+              <option value="18px">18</option>
+              <option value="22px">22</option>
+              <option value="26px">26</option>
+            </select>
+          </label>
+          <div class="chart-menu" id="chart-menu">
+            <button class="button button-secondary toolbar-button chart-menu-trigger" id="chart-menu-trigger" type="button" aria-haspopup="true" aria-expanded="false">Charts</button>
+            <div class="chart-menu-dropdown" id="chart-menu-dropdown" hidden>
+              <button class="chart-menu-item" data-chart-type="bar" type="button">Bar chart</button>
+              <button class="chart-menu-item" data-chart-type="line" type="button">Line chart</button>
+              <button class="chart-menu-item" data-chart-type="area" type="button">Area chart</button>
+              <button class="chart-menu-item" data-chart-type="donut" type="button">Donut chart</button>
+            </div>
+          </div>
+          <a class="button button-secondary toolbar-link-publish" id="page-route-link" href="#/page/home-dashboard">Publish page</a>
         </div>
-        <p class="route-copy" id="route-copy">Each page can now be opened directly with its own URL.</p>
-      </section>
+      </div>
 
       <section class="workspace-grid">
         <article class="card editor-card">
-          <div class="panel-header">
-            <div>
-              <p class="section-label">Editor</p>
-              <h2 id="editor-heading">Page details</h2>
-            </div>
-            <span class="pill pill-live" id="save-status">Ready</span>
-          </div>
-
           <form class="editor-form" id="editor-form">
             <label class="field">
-              <span class="field-label">Title</span>
-              <input id="page-title" name="title" type="text" placeholder="Platform on-call handbook">
-            </label>
-
-            <div class="field-row">
-              <label class="field">
-                <span class="field-label">Category</span>
-                <select id="page-category" name="category">
-                  <option value="Dashboard">Dashboard</option>
-                  <option value="Runbook">Runbook</option>
-                  <option value="Architecture">Architecture</option>
-                  <option value="Planning">Planning</option>
-                  <option value="Reference">Reference</option>
-                </select>
-              </label>
-
-              <label class="field">
-                <span class="field-label">Tags</span>
-                <input id="page-tags" name="tags" type="text" placeholder="incident, platform, on-call">
-              </label>
-            </div>
-
-            <label class="field">
-              <span class="field-label">Summary</span>
-              <textarea id="page-summary" name="summary" rows="3" placeholder="Short description for the page list and search results"></textarea>
-            </label>
-
-            <label class="field">
               <span class="field-label">Body</span>
-              <textarea id="page-body" name="body" rows="18" placeholder="# Heading&#10;&#10;Write notes, bullets, and links here."></textarea>
+              <div id="page-body-editor" class="body-editor" contenteditable="true"></div>
             </label>
 
             <div class="editor-actions">
@@ -111,12 +105,121 @@
               <p class="section-label">Published</p>
               <h2 id="published-title">Untitled page</h2>
             </div>
+            <div class="panel-actions">
+              <a class="button button-secondary" id="edit-route-link" href="#/edit/home-dashboard">Edit page</a>
+            </div>
           </div>
           <div class="published-body" id="published-body"></div>
         </article>
       </section>
     </main>
   </div>
+
+  <aside class="chart-editor-flyout" id="chart-editor-flyout" hidden>
+    <div class="chart-editor-flyout-inner">
+      <div class="panel-header">
+        <div>
+          <p class="section-label">Chart</p>
+          <h2>Edit chart</h2>
+        </div>
+      </div>
+      <label class="field">
+        <span class="field-label">Chart title</span>
+        <input id="chart-title-input" type="text" placeholder="Quarterly delivery">
+      </label>
+      <label class="field">
+        <span class="field-label">Subtitle</span>
+        <input id="chart-subtitle-input" type="text" placeholder="Status across engineering teams">
+      </label>
+      <label class="field">
+        <span class="field-label">Chart data</span>
+        <textarea id="chart-data-input" rows="6" placeholder="Platform,72&#10;API,58&#10;Reliability,91"></textarea>
+      </label>
+      <div class="chart-style-sections">
+        <details class="chart-style-section">
+          <summary class="chart-style-summary">
+            <div><h3>Visibility</h3></div>
+          </summary>
+          <div class="chart-style-grid chart-style-grid-compact">
+            <label class="check-field"><input id="chart-show-title-input" type="checkbox" checked> Show title</label>
+            <label class="check-field"><input id="chart-show-legend-input" type="checkbox" checked> Show legend</label>
+            <label class="check-field"><input id="chart-show-labels-input" type="checkbox" checked> Show labels</label>
+            <label class="check-field"><input id="chart-show-values-input" type="checkbox" checked> Show values</label>
+          </div>
+        </details>
+        <details class="chart-style-section">
+          <summary class="chart-style-summary">
+            <div><h3>Typography</h3></div>
+          </summary>
+          <div class="chart-style-grid">
+            <label class="field">
+              <span class="field-label">Title size</span>
+              <input id="chart-title-size-input" type="number" min="14" max="40" step="1">
+            </label>
+            <label class="field">
+              <span class="field-label">Label size</span>
+              <input id="chart-label-size-input" type="number" min="10" max="24" step="1">
+            </label>
+            <label class="field">
+              <span class="field-label">Value size</span>
+              <input id="chart-value-size-input" type="number" min="10" max="24" step="1">
+            </label>
+            <label class="field">
+              <span class="field-label">Legend size</span>
+              <input id="chart-legend-size-input" type="number" min="10" max="24" step="1">
+            </label>
+          </div>
+        </details>
+        <details class="chart-style-section">
+          <summary class="chart-style-summary">
+            <div><h3>Colors</h3></div>
+          </summary>
+          <div class="chart-style-grid">
+            <label class="field">
+              <span class="field-label">Surface</span>
+              <input id="chart-surface-color-input" type="color">
+            </label>
+            <label class="field">
+              <span class="field-label">Border</span>
+              <input id="chart-border-color-input" type="color">
+            </label>
+            <label class="field">
+              <span class="field-label">Text</span>
+              <input id="chart-text-color-input" type="color">
+            </label>
+            <label class="field">
+              <span class="field-label">Muted text</span>
+              <input id="chart-muted-color-input" type="color">
+            </label>
+            <label class="field">
+              <span class="field-label">Primary</span>
+              <input id="chart-accent-color-input" type="color">
+            </label>
+            <label class="field">
+              <span class="field-label">Secondary</span>
+              <input id="chart-accent-secondary-input" type="color">
+            </label>
+            <label class="field">
+              <span class="field-label">Track</span>
+              <input id="chart-track-color-input" type="color">
+            </label>
+            <label class="field">
+              <span class="field-label">Legend position</span>
+              <select id="chart-legend-position-input">
+                <option value="right">Right</option>
+                <option value="bottom">Bottom</option>
+              </select>
+            </label>
+          </div>
+        </details>
+      </div>
+      <p class="chart-modal-help">Use one line per item in the format `label,value`.</p>
+      <div class="editor-actions">
+        <button class="button button-primary" id="chart-save-button" type="button">Save chart</button>
+        <button class="button button-secondary" id="chart-cancel-button" type="button">Cancel</button>
+      </div>
+    </div>
+  </aside>
 
   <script type="module" src="firebase-workspace.js"></script>
 </body>

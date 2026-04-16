@@ -120,7 +120,8 @@ const state = {
   syncMode: firebaseProject.enabled ? "firebase" : "local",
   authReady: false,
   user: null,
-  routeMode: "workspace-home"
+  routeMode: "workspace-home",
+  syncSheetOpen: false
 };
 
 const chartEditorState = {
@@ -157,6 +158,14 @@ const elements = {
   authStatus: document.querySelector("#auth-status"),
   signInButton: document.querySelector("#sign-in-button"),
   signOutButton: document.querySelector("#sign-out-button"),
+  syncDockStatus: document.querySelector("#sync-dock-status"),
+  syncDockButton: document.querySelector("#sync-dock-button"),
+  syncSheet: document.querySelector("#sync-sheet"),
+  syncSheetScrim: document.querySelector("#sync-sheet-scrim"),
+  syncSheetStatus: document.querySelector("#sync-sheet-status"),
+  syncSheetCloseButton: document.querySelector("#sync-sheet-close-button"),
+  syncSheetSignInButton: document.querySelector("#sync-sheet-sign-in-button"),
+  syncSheetSignOutButton: document.querySelector("#sync-sheet-sign-out-button"),
   pageRouteLink: document.querySelector("#page-route-link"),
   editRouteLink: document.querySelector("#edit-route-link"),
   chartTitleInput: document.querySelector("#chart-title-input"),
@@ -217,23 +226,39 @@ function renderPageCount() {
 }
 
 function renderSyncState() {
+  let authMessage = "Connect Firebase config to enable shared pages and Google sign-in.";
+  let dockLabel = "Local mode";
+
   if (state.syncMode === "firebase") {
     elements.syncMode.textContent = "Firebase";
+    dockLabel = state.user ? "Firebase connected" : "Firebase available";
     if (state.user) {
       const label = state.user.displayName || state.user.email || "Signed-in user";
-      elements.authStatus.textContent = `Cloud sync enabled for ${label}.`;
+      authMessage = `Cloud sync enabled for ${label}.`;
     } else if (state.authReady) {
-      elements.authStatus.textContent = "Sign in with Google to load and edit shared workspace pages.";
+      authMessage = "Sign in with Google to load and edit shared workspace pages.";
     } else {
-      elements.authStatus.textContent = "Connecting to Firebase authentication.";
+      authMessage = "Connecting to Firebase authentication.";
     }
   } else {
     elements.syncMode.textContent = "Local mode";
-    elements.authStatus.textContent = "Connect Firebase config to enable shared pages and Google sign-in.";
+    dockLabel = "Local mode";
   }
 
+  elements.authStatus.textContent = authMessage;
+  elements.syncDockStatus.textContent = dockLabel;
+  elements.syncSheetStatus.textContent = authMessage;
   elements.signInButton.disabled = state.syncMode !== "firebase" || !state.authReady || !!state.user;
   elements.signOutButton.disabled = state.syncMode !== "firebase" || !state.user;
+  elements.syncSheetSignInButton.disabled = elements.signInButton.disabled;
+  elements.syncSheetSignOutButton.disabled = elements.signOutButton.disabled;
+}
+
+function setSyncSheetOpen(isOpen) {
+  state.syncSheetOpen = isOpen;
+  elements.syncSheet.hidden = !isOpen;
+  elements.syncDockButton.setAttribute("aria-expanded", String(isOpen));
+  document.body.classList.toggle("sync-sheet-open", isOpen);
 }
 
 function parseRoute() {
@@ -2002,6 +2027,26 @@ elements.signOutButton.addEventListener("click", async () => {
   await handleSignOut();
 });
 
+elements.syncDockButton.addEventListener("click", () => {
+  setSyncSheetOpen(!state.syncSheetOpen);
+});
+
+elements.syncSheetCloseButton.addEventListener("click", () => {
+  setSyncSheetOpen(false);
+});
+
+elements.syncSheetScrim.addEventListener("click", () => {
+  setSyncSheetOpen(false);
+});
+
+elements.syncSheetSignInButton.addEventListener("click", async () => {
+  await handleSignIn();
+});
+
+elements.syncSheetSignOutButton.addEventListener("click", async () => {
+  await handleSignOut();
+});
+
 elements.bodyEditor.addEventListener("input", handleLiveEdit);
 elements.bodyEditor.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) {
@@ -2207,6 +2252,11 @@ elements.chartMenuDropdown.addEventListener("click", (event) => {
 document.addEventListener("mousedown", (event) => {
   if (!event.target.closest("#chart-menu")) {
     closeChartMenu();
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && state.syncSheetOpen) {
+    setSyncSheetOpen(false);
   }
 });
 document.addEventListener("pointermove", (event) => {

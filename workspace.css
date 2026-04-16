@@ -17,6 +17,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  padding-bottom: 92px;
   font-family: "Space Grotesk", sans-serif;
   color: var(--text);
   background: #f7f8f9;
@@ -676,6 +677,76 @@ p {
   z-index: 40;
 }
 
+.sync-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  pointer-events: auto;
+}
+
+.sync-dock-inner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-top: 1px solid rgba(23, 33, 33, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 18px 40px rgba(23, 33, 33, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.sync-dock-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.sync-dock-status {
+  font-size: 0.96rem;
+  font-weight: 500;
+}
+
+.sync-dock-button {
+  flex: 0 0 auto;
+}
+
+.sync-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+}
+
+.sync-sheet[hidden] {
+  display: none;
+}
+
+.sync-sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(23, 33, 33, 0.3);
+}
+
+.sync-sheet-panel {
+  position: absolute;
+  right: 16px;
+  bottom: 72px;
+  width: min(360px, calc(100vw - 32px));
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 22px 48px rgba(23, 33, 33, 0.18);
+  display: grid;
+  gap: 10px;
+}
+
+body.sync-sheet-open {
+  overflow: hidden;
+}
+
 .chart-editor-flyout[hidden] {
   display: none;
 }
@@ -897,6 +968,10 @@ body.workspace-home-mode .workspace-grid {
 }
 
 @media (max-width: 640px) {
+  body {
+    padding-bottom: 104px;
+  }
+
   .workspace-shell {
     width: calc(100% - 16px);
     padding: 12px 0 18px 8px;
@@ -918,6 +993,29 @@ body.workspace-home-mode .workspace-grid {
 
   .sidebar-actions {
     grid-template-columns: 1fr;
+  }
+
+  .sync-dock {
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  .sync-dock-inner {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sync-dock-button {
+    width: 100%;
+  }
+
+  .sync-sheet-panel {
+    right: 10px;
+    left: 10px;
+    bottom: 84px;
+    width: auto;
   }
 
   .editor-actions,

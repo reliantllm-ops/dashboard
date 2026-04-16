@@ -115,6 +115,34 @@
     </main>
   </div>
 
+  <div class="sync-dock" id="sync-dock">
+    <div class="sync-dock-inner">
+      <div class="sync-dock-copy">
+        <p class="section-label">Sync</p>
+        <p class="sync-dock-status" id="sync-dock-status">Local mode</p>
+      </div>
+      <button class="button button-primary sync-dock-button" id="sync-dock-button" type="button" aria-controls="sync-sheet" aria-expanded="false">Firebase sync</button>
+    </div>
+  </div>
+
+  <aside class="sync-sheet" id="sync-sheet" hidden>
+    <div class="sync-sheet-scrim" id="sync-sheet-scrim"></div>
+    <div class="sync-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sync-sheet-title">
+      <div class="panel-header">
+        <div>
+          <p class="section-label">Sync</p>
+          <h2 id="sync-sheet-title">Firebase sync</h2>
+        </div>
+        <button class="button button-secondary" id="sync-sheet-close-button" type="button">Close</button>
+      </div>
+      <p class="sync-copy" id="sync-sheet-status">Connect Firebase config to enable shared pages and Google sign-in.</p>
+      <div class="sidebar-actions">
+        <button class="button button-primary" id="sync-sheet-sign-in-button" type="button">Sign in</button>
+        <button class="button button-secondary" id="sync-sheet-sign-out-button" type="button">Sign out</button>
+      </div>
+    </div>
+  </aside>
+
   <aside class="chart-editor-flyout" id="chart-editor-flyout" hidden>
     <div class="chart-editor-flyout-inner">
       <div class="panel-header">

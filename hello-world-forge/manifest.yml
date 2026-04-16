@@ -1,0 +1,39 @@
+modules:
+  macro:
+    - key: forge-bar-chart-macro
+      resource: forge-main
+      render: native
+      title: A bar chart
+      description: Displays a simple configurable Forge bar chart.
+      config:
+        resource: forge-macro-config
+        render: native
+        viewportSize: max
+        title: Configure A bar chart
+    - key: custom-bar-chart-macro
+      resource: main
+      render: native
+      title: bar chart 2
+      description: Displays a simple configurable custom bar chart and opens the standard Forge configuration panel in edit mode.
+      config:
+        resource: macro-config
+        render: native
+        viewportSize: max
+        title: Configure bar chart 2
+resources:
+  - key: forge-main
+    path: src/frontend/forge-index.jsx
+  - key: forge-macro-config
+    path: src/frontend/forge-config.jsx
+  - key: main
+    path: src/frontend/index.jsx
+  - key: macro-config
+    path: src/frontend/config.jsx
+  - key: bar-chart-2-frame
+    path: src/static/bar-chart-2
+app:
+  runtime:
+    name: nodejs22.x
+    memoryMB: 256
+    architecture: arm64
+  id: ari:cloud:ecosystem::app/fdc530ca-15f8-43ae-8c8b-8c508039d50d

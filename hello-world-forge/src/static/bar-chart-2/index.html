@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bar Chart 2</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        color: #172b4d;
+        font-family: Arial, sans-serif;
+      }
+
+      #root {
+        width: 100%;
+      }
+
+      .status {
+        padding: 12px 0;
+        color: #44546f;
+        font-size: 14px;
+      }
+
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="status">Loading chart...</div>
+    </div>
+    <script>
+      (() => {
+        const DEFAULTS = {
+          title: "Quarterly sales",
+          data: "Q1,12\nQ2,18\nQ3,9\nQ4,22",
+          color: "blue",
+          width: 480,
+          height: 320,
+          barWidth: 48,
+          barGap: 12,
+          useGradient: false
+        };
+
+        const COLOR_OPTIONS = [
+          { value: "blue", hex: "#0052CC", gradientHex: "#4C9AFF" },
+          { value: "green", hex: "#36B37E", gradientHex: "#79F2C0" },
+          { value: "red", hex: "#DE350B", gradientHex: "#FF8F73" },
+          { value: "orange", hex: "#FF8B00", gradientHex: "#FFC400" },
+          { value: "purple", hex: "#6554C0", gradientHex: "#998DD9" },
+          { value: "teal", hex: "#00B8D9", gradientHex: "#79E2F2" }
+        ];
+
+        const FRAME_READY_EVENT = "bar-chart-2:ready";
+        const FRAME_UPDATE_EVENT = "bar-chart-2:update";
+        const root = document.getElementById("root");
+
+        const callBridge = (name, payload) => {
+          if (!window.__bridge || typeof window.__bridge.callBridge !== "function") {
+            throw new Error("Forge bridge unavailable");
+          }
+
+          return window.__bridge.callBridge(name, payload);
+        };
+
+        const normalizeColor = (rawValue) => {
+          const value = String(rawValue ?? "").trim();
+          return COLOR_OPTIONS.some((option) => option.value === value) ? value : DEFAULTS.color;
+        };
+
+        const normalizeDimension = (rawValue, fallback, min, max) => {
+          const value = Number(rawValue);
+          if (!Number.isFinite(value)) {
+            return fallback;
+          }
+
+          return Math.min(Math.max(value, min), max);
+        };
+
+        const normalizeBoolean = (rawValue, fallback = false) => {
+          if (typeof rawValue === "boolean") {
+            return rawValue;
+          }
+
+          if (typeof rawValue === "string") {
+            const value = rawValue.trim().toLowerCase();
+            if (value === "true") {
+              return true;
+            }
+            if (value === "false") {
+              return false;
+            }
+          }
+
+          return fallback;
+        };
+
+        const escapeXml = (value) =>
+          String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&apos;");
+
+        const parseRows = (rawValue) =>
+          String(rawValue ?? "")
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line, index) => {
+              const parts = line.split(",");
+              const label = parts[0] ? parts[0].trim() : "";
+              const value = parts[1] ? Number(parts[1].trim()) : NaN;
+
+              if (!label || !Number.isFinite(value)) {
+                throw new Error("Line " + (index + 1) + " must look like Label,Value");
+              }
+
+              return { label, value };
+            });
+
+        const createPayloadFromConfig = (config) => {
+          const color = normalizeColor(config.color);
+          const colorOption = COLOR_OPTIONS.find((option) => option.value === color) || COLOR_OPTIONS[0];
+
+          return {
+            title: String(config.title ?? "").trim() || DEFAULTS.title,
+            rows: parseRows(config.data ?? DEFAULTS.data),
+            width: normalizeDimension(config.width, DEFAULTS.width, 240, 900),
+            height: normalizeDimension(config.height, DEFAULTS.height, 240, 700),
+            barWidth: normalizeDimension(config.barWidth, DEFAULTS.barWidth, 12, 120),
+            barGap: normalizeDimension(config.barGap, DEFAULTS.barGap, 0, 48),
+            useGradient: normalizeBoolean(config.useGradient, DEFAULTS.useGradient),
+            color,
+            colorHex: colorOption.hex,
+            gradientHex: colorOption.gradientHex
+          };
+        };
+
+        const buildSvg = (payload) => {
+          const rows = payload.rows;
+          const maxValue = Math.max(...rows.map((row) => row.value), 20, 1);
+          const titleHeight = 20;
+          const valueLabelHeight = 22;
+          const plotTop = titleHeight + valueLabelHeight;
+          const plotHeight = payload.height;
+          const axisGap = 8;
+          const labelRowHeight = 24;
+          const leftPad = 36;
+          const rightPad = 12;
+          const axisY = plotTop + plotHeight;
+          const labelY = axisY + 18;
+          const innerWidth = rows.length * payload.barWidth + Math.max(0, rows.length - 1) * payload.barGap;
+          const svgWidth = Math.max(payload.width, leftPad + innerWidth + rightPad);
+          const svgHeight = axisY + axisGap + labelRowHeight;
+          const plotRight = svgWidth - rightPad;
+          const guides = [10, 20];
+
+          const defs = payload.useGradient
+            ? "<defs>" +
+              rows
+                .map(
+                  (_, index) =>
+                    '<linearGradient id="bar-gradient-' +
+                    index +
+                    '" x1="0" y1="0" x2="0" y2="1">' +
+                    '<stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>' +
+                    '<stop offset="18%" stop-color="' +
+                    payload.gradientHex +
+                    '" stop-opacity="1"/>' +
+                    '<stop offset="100%" stop-color="' +
+                    payload.colorHex +
+                    '" stop-opacity="1"/>' +
+                    "</linearGradient>"
+                )
+                .join("") +
+              "</defs>"
+            : "";
+
+          const guideMarkup = guides
+            .map((guide) => {
+              const y = plotTop + plotHeight - (guide / maxValue) * plotHeight;
+              return '<line x1="' + leftPad + '" y1="' + y + '" x2="' + plotRight + '" y2="' + y + '" stroke="#8590A2" stroke-width="1" />';
+            })
+            .join("");
+
+          const yLabels = guides
+            .map((guide) => {
+              const y = plotTop + plotHeight - (guide / maxValue) * plotHeight;
+              return '<text x="' + (leftPad - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="12" fill="#44546F">' + guide + "</text>";
+            })
+            .join("");
+
+          const bars = rows
+            .map((row, index) => {
+              const x = leftPad + index * (payload.barWidth + payload.barGap);
+              const barHeight = Math.max(8, Math.round((row.value / maxValue) * plotHeight));
+              const y = axisY - barHeight;
+              const fill = payload.useGradient ? "url(#bar-gradient-" + index + ")" : payload.colorHex;
+
+              return [
+                '<text x="' + (x + payload.barWidth / 2) + '" y="' + (plotTop - 6) + '" text-anchor="middle" font-size="12" fill="#172B4D">' + escapeXml(row.value) + "</text>",
+                '<rect x="' + x + '" y="' + y + '" width="' + payload.barWidth + '" height="' + barHeight + '" rx="4" ry="4" fill="' + fill + '" />',
+                '<text x="' + (x + payload.barWidth / 2) + '" y="' + labelY + '" text-anchor="middle" font-size="12" fill="#172B4D">' + escapeXml(row.label) + "</text>"
+              ].join("");
+            })
+            .join("");
+
+          return (
+            '<svg xmlns="http://www.w3.org/2000/svg" width="' +
+            svgWidth +
+            '" height="' +
+            svgHeight +
+            '" viewBox="0 0 ' +
+            svgWidth +
+            " " +
+            svgHeight +
+            '">' +
+            defs +
+            '<text x="0" y="14" font-size="14" font-weight="700" fill="#172B4D">' +
+            escapeXml(payload.title) +
+            "</text>" +
+            guideMarkup +
+            '<line x1="' +
+            leftPad +
+            '" y1="' +
+            plotTop +
+            '" x2="' +
+            leftPad +
+            '" y2="' +
+            axisY +
+            '" stroke="#172B4D" stroke-width="2" />' +
+            '<line x1="' +
+            leftPad +
+            '" y1="' +
+            axisY +
+            '" x2="' +
+            plotRight +
+            '" y2="' +
+            axisY +
+            '" stroke="#172B4D" stroke-width="2" />' +
+            yLabels +
+            bars +
+            "</svg>"
+          );
+        };
+
+        const renderStatus = (message) => {
+          root.innerHTML = '<div class="status">' + escapeXml(message) + "</div>";
+        };
+
+        const renderChart = (payload) => {
+          root.innerHTML = buildSvg(payload);
+        };
+
+        const init = async () => {
+          try {
+            const context = await callBridge("getContext");
+            const config = context && context.extension ? context.extension.config || {} : {};
+            renderChart(createPayloadFromConfig(config));
+          } catch (error) {
+            renderStatus(error instanceof Error ? error.message : "Unable to load chart.");
+          }
+
+          try {
+            await callBridge("on", {
+              event: FRAME_UPDATE_EVENT,
+              callback: (payload) => {
+                try {
+                  renderChart(payload);
+                } catch (error) {
+                  renderStatus(error instanceof Error ? error.message : "Unable to render chart.");
+                }
+              }
+            });
+
+            await callBridge("emit", { event: FRAME_READY_EVENT });
+          } catch (error) {
+            renderStatus(error instanceof Error ? error.message : "Unable to subscribe to chart updates.");
+          }
+        };
+
+        init();
+      })();
+    </script>
+  </body>
+</html>

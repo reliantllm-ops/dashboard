@@ -1,13 +1,12 @@
-import React, { useEffect } from "react";
+import React from "react";
 import ForgeReconciler, {
-  Frame,
+  BarChart,
   SectionMessage,
   Stack,
   Strong,
   Text,
   useConfig
 } from "@forge/react";
-import { events } from "@forge/bridge";
 
 const DEFAULT_TITLE = "Quarterly sales";
 const DEFAULT_DATA = `Q1,12
@@ -17,19 +16,13 @@ Q4,22`;
 const DEFAULT_COLOR = "blue";
 const DEFAULT_WIDTH = 480;
 const DEFAULT_HEIGHT = 320;
-const DEFAULT_BAR_WIDTH = 48;
-const DEFAULT_BAR_GAP = 12;
-const DEFAULT_GRADIENT = false;
-const FRAME_RESOURCE = "bar-chart-2-frame";
-const FRAME_READY_EVENT = "bar-chart-2:ready";
-const FRAME_UPDATE_EVENT = "bar-chart-2:update";
 const COLOR_OPTIONS = [
-  { label: "Blue", value: "blue", hex: "#0052CC", gradientHex: "#4C9AFF" },
-  { label: "Green", value: "green", hex: "#36B37E", gradientHex: "#79F2C0" },
-  { label: "Red", value: "red", hex: "#DE350B", gradientHex: "#FF8F73" },
-  { label: "Orange", value: "orange", hex: "#FF8B00", gradientHex: "#FFC400" },
-  { label: "Purple", value: "purple", hex: "#6554C0", gradientHex: "#998DD9" },
-  { label: "Teal", value: "teal", hex: "#00B8D9", gradientHex: "#79E2F2" }
+  { label: "Blue", value: "blue", hex: "#0052CC" },
+  { label: "Green", value: "green", hex: "#36B37E" },
+  { label: "Red", value: "red", hex: "#DE350B" },
+  { label: "Orange", value: "orange", hex: "#FF8B00" },
+  { label: "Purple", value: "purple", hex: "#6554C0" },
+  { label: "Teal", value: "teal", hex: "#00B8D9" }
 ];
 
 const normalizeColor = (rawValue) => {
@@ -46,24 +39,6 @@ const normalizeDimension = (rawValue, fallback, min, max) => {
   return Math.min(Math.max(value, min), max);
 };
 
-const normalizeBoolean = (rawValue, fallback = false) => {
-  if (typeof rawValue === "boolean") {
-    return rawValue;
-  }
-
-  if (typeof rawValue === "string") {
-    const value = rawValue.trim().toLowerCase();
-    if (value === "true") {
-      return true;
-    }
-    if (value === "false") {
-      return false;
-    }
-  }
-
-  return fallback;
-};
-
 const parseRows = (rawValue) =>
   String(rawValue ?? "")
     .split(/\r?\n/)
@@ -78,32 +53,11 @@ const parseRows = (rawValue) =>
       }
 
       return {
+        group: "bars",
         label,
         value: numericValue
       };
     });
-
-const CustomBarChart = ({ payload }) => {
-  useEffect(() => {
-    let subscription;
-
-    const pushState = () => {
-      void events.emit(FRAME_UPDATE_EVENT, payload);
-    };
-
-    pushState();
-
-    void events.on(FRAME_READY_EVENT, pushState).then((nextSubscription) => {
-      subscription = nextSubscription;
-    });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, [payload]);
-
-  return <Frame resource={FRAME_RESOURCE} height={`${payload.height + 112}px`} width="100%" />;
-};
 
 const App = () => {
   const config = useConfig() ?? {};
@@ -112,9 +66,6 @@ const App = () => {
   const colorOption = COLOR_OPTIONS.find((option) => option.value === color) ?? COLOR_OPTIONS[0];
   const width = normalizeDimension(config.width, DEFAULT_WIDTH, 240, 900);
   const height = normalizeDimension(config.height, DEFAULT_HEIGHT, 240, 700);
-  const barWidth = normalizeDimension(config.barWidth, DEFAULT_BAR_WIDTH, 12, 120);
-  const barGap = normalizeDimension(config.barGap, DEFAULT_BAR_GAP, 0, 48);
-  const useGradient = normalizeBoolean(config.useGradient, DEFAULT_GRADIENT);
 
   let rows = [];
   let errorMessage = "";
@@ -133,25 +84,21 @@ const App = () => {
     );
   }
 
-  const payload = {
-    title,
-    rows,
-    width,
-    height,
-    barWidth,
-    barGap,
-    useGradient,
-    color,
-    colorHex: colorOption.hex,
-    gradientHex: colorOption.gradientHex
-  };
-
   return (
     <Stack space="space.100">
       <Text>
         <Strong>Simple bar chart</Strong>
       </Text>
-      <CustomBarChart payload={payload} />
+      <BarChart
+        data={rows}
+        xAccessor="label"
+        yAccessor="value"
+        title={title}
+        width={width}
+        height={height}
+        colorAccessor="group"
+        colorPalette={[{ key: "bars", value: colorOption.hex }]}
+      />
       <SectionMessage appearance="info" title="Configuration">
         <Text>Use Configure in edit mode to change the chart title, color, and bar values.</Text>
       </SectionMessage>

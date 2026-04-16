@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import ForgeReconciler, {
+  BarChart,
   Box,
   Button,
   ButtonGroup,
-  Frame,
   Inline,
   Modal,
   ModalBody,
@@ -19,10 +19,9 @@ import ForgeReconciler, {
   Text,
   TextArea,
   Textfield,
-  Toggle,
   xcss
 } from "@forge/react";
-import { events, view } from "@forge/bridge";
+import { view } from "@forge/bridge";
 
 const DEFAULTS = {
   title: "Quarterly sales",
@@ -32,23 +31,16 @@ Q3,9
 Q4,22`,
   color: "blue",
   width: 480,
-  height: 320,
-  barWidth: 48,
-  barGap: 12,
-  useGradient: false
+  height: 320
 };
 
-const FRAME_RESOURCE = "bar-chart-2-frame";
-const FRAME_READY_EVENT = "bar-chart-2:ready";
-const FRAME_UPDATE_EVENT = "bar-chart-2:update";
-
 const COLOR_OPTIONS = [
-  { label: "Blue", value: "blue", hex: "#0052CC", gradientHex: "#4C9AFF", background: "color.background.accent.blue.bolder" },
-  { label: "Green", value: "green", hex: "#36B37E", gradientHex: "#79F2C0", background: "color.background.accent.green.bolder" },
-  { label: "Red", value: "red", hex: "#DE350B", gradientHex: "#FF8F73", background: "color.background.accent.red.bolder" },
-  { label: "Orange", value: "orange", hex: "#FF8B00", gradientHex: "#FFC400", background: "color.background.accent.orange.bolder" },
-  { label: "Purple", value: "purple", hex: "#6554C0", gradientHex: "#998DD9", background: "color.background.accent.purple.bolder" },
-  { label: "Teal", value: "teal", hex: "#00B8D9", gradientHex: "#79E2F2", background: "color.background.accent.teal.bolder" }
+  { label: "Blue", value: "blue", hex: "#0052CC", background: "color.background.accent.blue.bolder" },
+  { label: "Green", value: "green", hex: "#36B37E", background: "color.background.accent.green.bolder" },
+  { label: "Red", value: "red", hex: "#DE350B", background: "color.background.accent.red.bolder" },
+  { label: "Orange", value: "orange", hex: "#FF8B00", background: "color.background.accent.orange.bolder" },
+  { label: "Purple", value: "purple", hex: "#6554C0", background: "color.background.accent.purple.bolder" },
+  { label: "Teal", value: "teal", hex: "#00B8D9", background: "color.background.accent.teal.bolder" }
 ];
 
 const tileStyles = xcss({
@@ -105,24 +97,6 @@ const normalizeDimension = (rawValue, fallback, min, max) => {
   return Math.min(Math.max(value, min), max);
 };
 
-const normalizeBoolean = (rawValue, fallback = false) => {
-  if (typeof rawValue === "boolean") {
-    return rawValue;
-  }
-
-  if (typeof rawValue === "string") {
-    const value = rawValue.trim().toLowerCase();
-    if (value === "true") {
-      return true;
-    }
-    if (value === "false") {
-      return false;
-    }
-  }
-
-  return fallback;
-};
-
 const parseRows = (rawValue) =>
   String(rawValue ?? "")
     .split(/\r?\n/)
@@ -137,32 +111,11 @@ const parseRows = (rawValue) =>
       }
 
       return {
+        group: "bars",
         label,
         value: numericValue
       };
     });
-
-const CustomBarChart = ({ payload }) => {
-  useEffect(() => {
-    let subscription;
-
-    const pushState = () => {
-      void events.emit(FRAME_UPDATE_EVENT, payload);
-    };
-
-    pushState();
-
-    void events.on(FRAME_READY_EVENT, pushState).then((nextSubscription) => {
-      subscription = nextSubscription;
-    });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, [payload]);
-
-  return <Frame resource={FRAME_RESOURCE} height={`${payload.height + 112}px`} width="100%" />;
-};
 
 const ColorTile = ({ option, selected, onSelect }) => (
   <Pressable onClick={() => onSelect(option.value)}>
@@ -195,10 +148,7 @@ const App = () => {
             data: String(existingConfig.data ?? DEFAULTS.data),
             color: normalizeColor(existingConfig.color),
             width: normalizeDimension(existingConfig.width, DEFAULTS.width, 240, 900),
-            height: normalizeDimension(existingConfig.height, DEFAULTS.height, 240, 700),
-            barWidth: normalizeDimension(existingConfig.barWidth, DEFAULTS.barWidth, 12, 120),
-            barGap: normalizeDimension(existingConfig.barGap, DEFAULTS.barGap, 0, 48),
-            useGradient: normalizeBoolean(existingConfig.useGradient, DEFAULTS.useGradient)
+            height: normalizeDimension(existingConfig.height, DEFAULTS.height, 240, 700)
           });
           setIsLoading(false);
         }
@@ -235,10 +185,7 @@ const App = () => {
           data: String(config.data ?? "").trim() || DEFAULTS.data,
           color: normalizeColor(config.color),
           width: normalizeDimension(config.width, DEFAULTS.width, 240, 900),
-          height: normalizeDimension(config.height, DEFAULTS.height, 240, 700),
-          barWidth: normalizeDimension(config.barWidth, DEFAULTS.barWidth, 12, 120),
-          barGap: normalizeDimension(config.barGap, DEFAULTS.barGap, 0, 48),
-          useGradient: normalizeBoolean(config.useGradient, DEFAULTS.useGradient)
+          height: normalizeDimension(config.height, DEFAULTS.height, 240, 700)
         }
       });
     } catch (submitError) {
@@ -260,19 +207,6 @@ const App = () => {
   } catch (error) {
     previewError = error instanceof Error ? error.message : "Unable to build preview.";
   }
-
-  const previewPayload = {
-    title: String(config.title ?? "").trim() || DEFAULTS.title,
-    rows: previewRows,
-    width: normalizeDimension(config.width, DEFAULTS.width, 240, 900),
-    height: normalizeDimension(config.height, DEFAULTS.height, 240, 700),
-    barWidth: normalizeDimension(config.barWidth, DEFAULTS.barWidth, 12, 120),
-    barGap: normalizeDimension(config.barGap, DEFAULTS.barGap, 0, 48),
-    useGradient: normalizeBoolean(config.useGradient, DEFAULTS.useGradient),
-    color: selectedColor.value,
-    colorHex: selectedColor.hex,
-    gradientHex: selectedColor.gradientHex
-  };
 
   return (
     <Stack space="space.200">
@@ -305,12 +239,6 @@ const App = () => {
             <Box xcss={triggerTileStyles} backgroundColor={selectedColor.background} />
           </Pressable>
         </Inline>
-        <Toggle
-          name="useGradient"
-          label="Gradient fill"
-          defaultChecked={Boolean(config.useGradient)}
-          onChange={updateField("useGradient")}
-        />
       </Stack>
 
       <Stack space="space.050">
@@ -326,56 +254,14 @@ const App = () => {
             <Inline space="space.050" alignBlock="center" xcss={sliderInlineStyles}>
               <Text>Chart width: {config.width}px</Text>
               <Box xcss={sliderWrapStyles}>
-                <Range
-                  name="width"
-                  value={Number(config.width)}
-                  onChange={updateField("width")}
-                  min={240}
-                  max={900}
-                  step={10}
-                />
+                <Range name="width" value={Number(config.width)} onChange={updateField("width")} min={240} max={900} step={10} />
               </Box>
             </Inline>
 
             <Inline space="space.050" alignBlock="center" xcss={sliderInlineStyles}>
               <Text>Chart height: {config.height}px</Text>
               <Box xcss={sliderWrapStyles}>
-                <Range
-                  name="height"
-                  value={Number(config.height)}
-                  onChange={updateField("height")}
-                  min={240}
-                  max={700}
-                  step={10}
-                />
-              </Box>
-            </Inline>
-
-            <Inline space="space.050" alignBlock="center" xcss={sliderInlineStyles}>
-              <Text>Bar width: {config.barWidth}px</Text>
-              <Box xcss={sliderWrapStyles}>
-                <Range
-                  name="barWidth"
-                  value={Number(config.barWidth)}
-                  onChange={updateField("barWidth")}
-                  min={12}
-                  max={120}
-                  step={2}
-                />
-              </Box>
-            </Inline>
-
-            <Inline space="space.050" alignBlock="center" xcss={sliderInlineStyles}>
-              <Text>Bar spacing: {config.barGap}px</Text>
-              <Box xcss={sliderWrapStyles}>
-                <Range
-                  name="barGap"
-                  value={Number(config.barGap)}
-                  onChange={updateField("barGap")}
-                  min={0}
-                  max={48}
-                  step={1}
-                />
+                <Range name="height" value={Number(config.height)} onChange={updateField("height")} min={240} max={700} step={10} />
               </Box>
             </Inline>
           </Stack>
@@ -391,7 +277,16 @@ const App = () => {
             <Text>{previewError}</Text>
           </SectionMessage>
         ) : (
-          <CustomBarChart payload={previewPayload} />
+          <BarChart
+            data={previewRows}
+            xAccessor="label"
+            yAccessor="value"
+            title={String(config.title ?? "").trim() || DEFAULTS.title}
+            width={normalizeDimension(config.width, DEFAULTS.width, 240, 900)}
+            height={normalizeDimension(config.height, DEFAULTS.height, 240, 700)}
+            colorAccessor="group"
+            colorPalette={[{ key: "bars", value: selectedColor.hex }]}
+          />
         )}
       </Stack>
 

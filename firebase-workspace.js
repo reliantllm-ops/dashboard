@@ -2003,6 +2003,24 @@ elements.signOutButton.addEventListener("click", async () => {
 });
 
 elements.bodyEditor.addEventListener("input", handleLiveEdit);
+elements.bodyEditor.addEventListener("click", (event) => {
+  if (!(event.target instanceof Element)) {
+    return;
+  }
+
+  const settingsButton = event.target.closest("[data-chart-settings='true']");
+  if (!(settingsButton instanceof HTMLElement)) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const chartElement = settingsButton.closest(`.${CHART_CLASS}`);
+  if (chartElement instanceof HTMLElement) {
+    openChartEditor(chartElement);
+  }
+});
 elements.bodyEditor.addEventListener("dragstart", (event) => {
   if (!(event.target instanceof Element)) {
     return;

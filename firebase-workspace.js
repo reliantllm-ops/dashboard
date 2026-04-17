@@ -1,6 +1,9 @@
 const STORAGE_KEY = "engineering-workspace-pages";
+const SIDEBAR_MINIMIZED_KEY = "engineering-workspace-sidebar-minimized";
 const CHART_CLASS = "chart-block";
 const CHART_DATA_ATTRIBUTE = "data-chart";
+const TABBED_CONTAINER_CLASS = "tabbed-container-block";
+const TABBED_CONTAINER_ATTRIBUTE = "data-tabbed-container";
 const CHART_TYPES = ["bar", "line", "area", "donut"];
 const CHART_COLORS = ["#0c66e4", "#579dff", "#36b37e", "#f5cd47", "#e56910"];
 const BODY_TEXT_BLOCK_CLASS = "editor-text-block";
@@ -95,7 +98,9 @@ const state = {
   activePageId: null,
   searchTerm: "",
   lastSavedAt: null,
-  routeMode: "workspace-home"
+  routeMode: "workspace-home",
+  sidebarMinimized: loadSidebarMinimized(),
+  tabAreaDrawMode: false
 };
 
 const chartEditorState = {
@@ -110,6 +115,7 @@ let chartDropReferenceNode = null;
 let chartDropIndicator = null;
 let chartDropRange = null;
 let chartResizeState = null;
+let tabAreaDrawState = null;
 
 const elements = {
   pageList: document.querySelector("#page-list"),
@@ -126,10 +132,12 @@ const elements = {
   chartEditorFlyout: document.querySelector("#chart-editor-flyout"),
   fontFamilySelect: document.querySelector("#font-family-select"),
   fontSizeSelect: document.querySelector("#font-size-select"),
+  createTabAreaButton: document.querySelector("#create-tab-area-button"),
   generateContentButton: document.querySelector("#generate-content-button"),
   newPageButton: document.querySelector("#new-page-button"),
   duplicatePageButton: document.querySelector("#duplicate-page-button"),
   deletePageButton: document.querySelector("#delete-page-button"),
+  sidebarToggleButton: document.querySelector("#sidebar-toggle-button"),
   pageRouteLink: document.querySelector("#page-route-link"),
   topEditRouteLink: document.querySelector("#top-edit-route-link"),
   editRouteLink: document.querySelector("#edit-route-link"),
@@ -174,8 +182,24 @@ function loadLocalPages() {
   }
 }
 
+function loadSidebarMinimized() {
+  try {
+    return localStorage.getItem(SIDEBAR_MINIMIZED_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
 function saveLocalPages() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.pages));
+}
+
+function saveSidebarMinimized() {
+  try {
+    localStorage.setItem(SIDEBAR_MINIMIZED_KEY, String(state.sidebarMinimized));
+  } catch {
+    // Ignore storage failures for UI-only state.
+  }
 }
 
 function renderSaveState(label) {
@@ -184,6 +208,42 @@ function renderSaveState(label) {
 
 function renderPageCount() {
   elements.pageCount.textContent = `${state.pages.length} pages`;
+}
+
+function renderSidebarMinimizedState() {
+  document.body.classList.toggle("sidebar-minimized", state.sidebarMinimized);
+
+  if (elements.sidebarToggleButton) {
+    const label = state.sidebarMinimized ? "Expand left panel" : "Minimize left panel";
+    elements.sidebarToggleButton.setAttribute("aria-label", label);
+    elements.sidebarToggleButton.setAttribute("title", label);
+  }
+}
+
+function renderTabAreaDrawState() {
+  document.body.classList.toggle("tab-area-draw-mode", state.tabAreaDrawMode);
+
+  if (elements.createTabAreaButton) {
+    elements.createTabAreaButton.setAttribute("aria-pressed", state.tabAreaDrawMode ? "true" : "false");
+    elements.createTabAreaButton.classList.toggle("is-active", state.tabAreaDrawMode);
+  }
+}
+
+function toggleTabAreaDrawMode(forceValue = !state.tabAreaDrawMode) {
+  state.tabAreaDrawMode = Boolean(forceValue);
+  if (!state.tabAreaDrawMode && tabAreaDrawState?.previewElement?.isConnected) {
+    tabAreaDrawState.previewElement.remove();
+  }
+  if (!state.tabAreaDrawMode) {
+    tabAreaDrawState = null;
+  }
+  renderTabAreaDrawState();
+}
+
+function toggleSidebarMinimized() {
+  state.sidebarMinimized = !state.sidebarMinimized;
+  saveSidebarMinimized();
+  renderSidebarMinimizedState();
 }
 
 function parseRoute() {
@@ -197,7 +257,7 @@ function parseRoute() {
     return { mode: "workspace-edit", pageId: decodeURIComponent(hash.slice(7)) };
   }
 
-  return { mode: "workspace-home", pageId: null };
+  return { mode: "workspace-edit", pageId: null };
 }
 
 function setRoute(mode, pageId) {
@@ -761,6 +821,142 @@ function setChartElementData(chartElement, nextChart) {
   chartElement.setAttribute("style", chartInlineStyle(chart));
 }
 
+function defaultTabbedContainerData(overrides = {}) {
+  const base = {
+    id: blockId("tabs"),
+    x: 40,
+    y: 40,
+    width: 420,
+    height: 260,
+    activeTabId: "tab-1",
+    tabs: [
+      {
+        id: "tab-1",
+        label: "Tab 1",
+        content: "<p>Start writing inside this tab.</p>"
+      }
+    ]
+  };
+
+  return normalizeTabbedContainerData({ ...base, ...overrides });
+}
+
+function normalizeTabbedContainerData(data = {}) {
+  const fallbackTabs = [
+    {
+      id: "tab-1",
+      label: "Tab 1",
+      content: "<p>Start writing inside this tab.</p>"
+    }
+  ];
+  const normalizedTabs = Array.isArray(data.tabs) && data.tabs.length
+    ? data.tabs.map((tab, index) => ({
+        id: String(tab?.id || `tab-${index + 1}`),
+        label: String(tab?.label || `Tab ${index + 1}`).trim() || `Tab ${index + 1}`,
+        content: String(tab?.content || "<p></p>").trim() || "<p></p>"
+      }))
+    : fallbackTabs;
+
+  const activeTabId = normalizedTabs.some((tab) => tab.id === data.activeTabId)
+    ? data.activeTabId
+    : normalizedTabs[0].id;
+
+  return {
+    id: String(data.id || blockId("tabs")),
+    x: clampNumber(data.x, 0, 2400, 40),
+    y: clampNumber(data.y, 0, 2400, 40),
+    width: clampNumber(data.width, 180, 1600, 420),
+    height: clampNumber(data.height, 140, 1200, 260),
+    activeTabId,
+    tabs: normalizedTabs
+  };
+}
+
+function encodeTabbedContainerData(data) {
+  return encodeURIComponent(JSON.stringify(normalizeTabbedContainerData(data)));
+}
+
+function decodeTabbedContainerData(value) {
+  try {
+    return normalizeTabbedContainerData(JSON.parse(decodeURIComponent(value || "")));
+  } catch {
+    return defaultTabbedContainerData();
+  }
+}
+
+function tabbedContainerStyle(data) {
+  const container = normalizeTabbedContainerData(data);
+  return [
+    `left:${container.x}px`,
+    `top:${container.y}px`,
+    `width:${container.width}px`,
+    `height:${container.height}px`
+  ].join("; ");
+}
+
+function buildTabbedContainerMarkup(data, mode = "editor") {
+  const container = normalizeTabbedContainerData(data);
+  const activeTab = container.tabs.find((tab) => tab.id === container.activeTabId) || container.tabs[0];
+  const tabsMarkup = container.tabs.map((tab) => {
+    const activeClass = tab.id === container.activeTabId ? " is-active" : "";
+    return `
+      <button class="tabbed-container-tab${activeClass}" type="button" data-tab-id="${escapeHtml(tab.id)}">
+        <span class="tabbed-container-tab-label">${escapeHtml(tab.label)}</span>
+      </button>
+    `;
+  }).join("");
+  const controlsMarkup = mode === "editor"
+    ? `
+      <div class="tabbed-container-controls" contenteditable="false">
+        <button class="tabbed-container-control" type="button" data-tab-action="add" aria-label="Add tab">+</button>
+        <button class="tabbed-container-control" type="button" data-tab-action="remove" aria-label="Delete current tab">-</button>
+        <button class="tabbed-container-control" type="button" data-tab-action="delete-container" aria-label="Delete tab area">&#215;</button>
+      </div>
+    `
+    : "";
+
+  return `
+    <div class="${TABBED_CONTAINER_CLASS}" ${TABBED_CONTAINER_ATTRIBUTE}="${encodeTabbedContainerData(container)}" style="${tabbedContainerStyle(container)}" contenteditable="false">
+      <div class="tabbed-container-header" contenteditable="false">
+        <div class="tabbed-container-tabs">${tabsMarkup}</div>
+        ${controlsMarkup}
+      </div>
+      <div class="tabbed-container-content">
+        <div class="tabbed-container-panel" ${mode === "editor" ? 'contenteditable="true"' : ""}>${activeTab?.content || "<p></p>"}</div>
+      </div>
+    </div>
+  `;
+}
+
+function setTabbedContainerData(containerElement, nextData, mode = "editor") {
+  if (!(containerElement instanceof HTMLElement)) {
+    return;
+  }
+
+  const data = normalizeTabbedContainerData(nextData);
+  containerElement.setAttribute(TABBED_CONTAINER_ATTRIBUTE, encodeTabbedContainerData(data));
+  containerElement.setAttribute("style", tabbedContainerStyle(data));
+
+  const panel = containerElement.querySelector(".tabbed-container-panel");
+  if (panel instanceof HTMLElement) {
+    const activeTab = data.tabs.find((tab) => tab.id === data.activeTabId) || data.tabs[0];
+    panel.innerHTML = activeTab?.content || "<p></p>";
+    panel.setAttribute("contenteditable", mode === "editor" ? "true" : "false");
+  }
+
+  const tabs = containerElement.querySelector(".tabbed-container-tabs");
+  if (tabs instanceof HTMLElement) {
+    tabs.innerHTML = data.tabs.map((tab) => {
+      const activeClass = tab.id === data.activeTabId ? " is-active" : "";
+      return `
+        <button class="tabbed-container-tab${activeClass}" type="button" data-tab-id="${escapeHtml(tab.id)}">
+          <span class="tabbed-container-tab-label">${escapeHtml(tab.label)}</span>
+        </button>
+      `;
+    }).join("");
+  }
+}
+
 function blockId(prefix = "block") {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -781,6 +977,14 @@ function makeChartBlock(chart) {
   };
 }
 
+function makeTabbedContainerBlock(container) {
+  return {
+    id: blockId("tabs"),
+    type: "tabbed-container",
+    container: normalizeTabbedContainerData(container)
+  };
+}
+
 function normalizeBodyBlocks(page = {}) {
   if (Array.isArray(page.bodyBlocks) && page.bodyBlocks.length) {
     return page.bodyBlocks.map((block) => {
@@ -789,6 +993,14 @@ function normalizeBodyBlocks(page = {}) {
           id: block.id || blockId("chart"),
           type: "chart",
           chart: normalizeChartData(block.chart)
+        };
+      }
+
+      if (block?.type === "tabbed-container") {
+        return {
+          id: block.id || blockId("tabs"),
+          type: "tabbed-container",
+          container: normalizeTabbedContainerData(block.container)
         };
       }
 
@@ -848,6 +1060,12 @@ function bodyBlocksFromContainer(container) {
       return;
     }
 
+    if (node.nodeType === Node.ELEMENT_NODE && node instanceof HTMLElement && node.hasAttribute(TABBED_CONTAINER_ATTRIBUTE)) {
+      flushTextNodes();
+      blocks.push(makeTabbedContainerBlock(decodeTabbedContainerData(node.getAttribute(TABBED_CONTAINER_ATTRIBUTE))));
+      return;
+    }
+
     textNodes.push(node.cloneNode(true));
   });
 
@@ -859,6 +1077,10 @@ function bodyBlocksToStorageHtml(blocks) {
   return blocks.map((block) => {
     if (block.type === "chart") {
       return `<div ${CHART_DATA_ATTRIBUTE}="${encodeChartData(block.chart)}"></div>`;
+    }
+
+    if (block.type === "tabbed-container") {
+      return `<div ${TABBED_CONTAINER_ATTRIBUTE}="${encodeTabbedContainerData(block.container)}"></div>`;
     }
 
     return String(block.html || "").trim() || "<p></p>";
@@ -873,6 +1095,17 @@ function bodyBlocksToRenderedHtml(blocks, mode = "published") {
       const element = wrapper.firstElementChild;
       if (element) {
         element.setAttribute("data-block-id", block.id || blockId("chart"));
+        return wrapper.innerHTML;
+      }
+      return "";
+    }
+
+    if (block.type === "tabbed-container") {
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = buildTabbedContainerMarkup(block.container, mode);
+      const element = wrapper.firstElementChild;
+      if (element) {
+        element.setAttribute("data-block-id", block.id || blockId("tabs"));
         return wrapper.innerHTML;
       }
       return "";
@@ -918,6 +1151,11 @@ function textFromBodyBlocks(blocks) {
     if (block.type === "chart") {
       const chart = normalizeChartData(block.chart);
       return [chart.title, chart.subtitle, ...chart.series.map((item) => item.label)].join(" ");
+    }
+
+    if (block.type === "tabbed-container") {
+      const container = normalizeTabbedContainerData(block.container);
+      return container.tabs.map((tab) => `${tab.label} ${tab.content}`).join(" ");
     }
 
     const wrapper = document.createElement("div");
@@ -971,6 +1209,14 @@ function editorBodyBlocks() {
         id: element.getAttribute("data-block-id") || blockId("chart"),
         type: "chart",
         chart: decodeChartData(element.getAttribute(CHART_DATA_ATTRIBUTE))
+      }];
+    }
+
+    if (element.classList.contains(TABBED_CONTAINER_CLASS)) {
+      return [{
+        id: element.getAttribute("data-block-id") || blockId("tabs"),
+        type: "tabbed-container",
+        container: decodeTabbedContainerData(element.getAttribute(TABBED_CONTAINER_ATTRIBUTE))
       }];
     }
 
@@ -1245,11 +1491,144 @@ function moveChartToEnd(chartElement) {
   return moveChartToReference(chartElement, null);
 }
 
+function tabbedContainerElementData(containerElement) {
+  if (!(containerElement instanceof HTMLElement)) {
+    return null;
+  }
+
+  return decodeTabbedContainerData(containerElement.getAttribute(TABBED_CONTAINER_ATTRIBUTE));
+}
+
+function activeTabbedContainerPanel(containerElement) {
+  return containerElement?.querySelector?.(".tabbed-container-panel") || null;
+}
+
+function syncTabbedContainerActiveContent(containerElement) {
+  const data = tabbedContainerElementData(containerElement);
+  const panel = activeTabbedContainerPanel(containerElement);
+  if (!data || !(panel instanceof HTMLElement)) {
+    return data;
+  }
+
+  const activeTab = data.tabs.find((tab) => tab.id === data.activeTabId);
+  if (activeTab) {
+    activeTab.content = panel.innerHTML.trim() || "<p></p>";
+  }
+
+  containerElement.setAttribute(TABBED_CONTAINER_ATTRIBUTE, encodeTabbedContainerData(data));
+  return data;
+}
+
+function createTabbedContainerAtRect(rect) {
+  const container = defaultTabbedContainerData(rect);
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = buildTabbedContainerMarkup(container, "editor");
+  const element = wrapper.firstElementChild;
+  if (!(element instanceof HTMLElement)) {
+    return;
+  }
+
+  element.setAttribute("data-block-id", blockId("tabs"));
+  elements.bodyEditor.appendChild(element);
+  const panel = activeTabbedContainerPanel(element);
+  if (panel instanceof HTMLElement) {
+    panel.focus();
+  }
+  handleLiveEdit();
+}
+
+function switchTabbedContainerTab(containerElement, tabId, mode = "editor") {
+  const data = syncTabbedContainerActiveContent(containerElement);
+  if (!data || !data.tabs.some((tab) => tab.id === tabId)) {
+    return;
+  }
+
+  data.activeTabId = tabId;
+  setTabbedContainerData(containerElement, data, mode);
+  if (mode === "editor") {
+    const panel = activeTabbedContainerPanel(containerElement);
+    if (panel instanceof HTMLElement) {
+      panel.focus();
+    }
+    handleLiveEdit();
+  }
+}
+
+function addTabbedContainerTab(containerElement) {
+  const data = syncTabbedContainerActiveContent(containerElement);
+  if (!data) {
+    return;
+  }
+
+  const nextIndex = data.tabs.length + 1;
+  const nextId = `tab-${Math.random().toString(36).slice(2, 8)}`;
+  data.tabs.push({
+    id: nextId,
+    label: `Tab ${nextIndex}`,
+    content: "<p></p>"
+  });
+  data.activeTabId = nextId;
+  setTabbedContainerData(containerElement, data, "editor");
+  const panel = activeTabbedContainerPanel(containerElement);
+  if (panel instanceof HTMLElement) {
+    panel.focus();
+  }
+  handleLiveEdit();
+}
+
+function removeTabbedContainerTab(containerElement) {
+  const data = syncTabbedContainerActiveContent(containerElement);
+  if (!data) {
+    return;
+  }
+
+  if (data.tabs.length <= 1) {
+    containerElement.remove();
+    handleLiveEdit();
+    return;
+  }
+
+  const activeIndex = data.tabs.findIndex((tab) => tab.id === data.activeTabId);
+  data.tabs = data.tabs.filter((tab) => tab.id !== data.activeTabId);
+  data.activeTabId = data.tabs[Math.max(0, activeIndex - 1)]?.id || data.tabs[0].id;
+  setTabbedContainerData(containerElement, data, "editor");
+  const panel = activeTabbedContainerPanel(containerElement);
+  if (panel instanceof HTMLElement) {
+    panel.focus();
+  }
+  handleLiveEdit();
+}
+
+function renameTabbedContainerTab(containerElement, tabId) {
+  const data = syncTabbedContainerActiveContent(containerElement);
+  if (!data) {
+    return;
+  }
+
+  const tab = data.tabs.find((entry) => entry.id === tabId);
+  if (!tab) {
+    return;
+  }
+
+  const nextLabel = window.prompt("Rename tab", tab.label);
+  if (nextLabel === null) {
+    return;
+  }
+
+  tab.label = nextLabel.trim() || tab.label;
+  setTabbedContainerData(containerElement, data, "editor");
+  handleLiveEdit();
+}
+
 function renderStoredBody(body) {
   const blocks = Array.isArray(body) ? normalizeBodyBlocks({ bodyBlocks: body }) : sourceToBodyBlocks(body);
   return blocks.map((block) => {
     if (block.type === "chart") {
       return buildChartBlockMarkup(block.chart, "published");
+    }
+
+    if (block.type === "tabbed-container") {
+      return buildTabbedContainerMarkup(block.container, "published");
     }
 
     return String(block.html || "").trim() || "<p></p>";
@@ -1478,6 +1857,8 @@ function renderRouteLinks() {
 function renderAll() {
   applyRoute();
   ensureActivePage();
+  renderSidebarMinimizedState();
+  renderTabAreaDrawState();
   renderPageList();
   renderEditor();
   renderChartEditorFlyout();
@@ -1724,6 +2105,10 @@ function ensureTrailingEditorParagraph() {
 }
 
 function placeCaretFromPoint(event) {
+  if (state.tabAreaDrawMode) {
+    return;
+  }
+
   if (!(event.target instanceof Element)) {
     return;
   }
@@ -1957,9 +2342,52 @@ elements.deletePageButton.addEventListener("click", async () => {
 
 elements.pageTitleEditor.addEventListener("input", handleLiveEdit);
 elements.bodyEditor.addEventListener("input", handleLiveEdit);
+elements.bodyEditor.addEventListener("input", (event) => {
+  const panel = event.target.closest(".tabbed-container-panel");
+  const containerElement = panel?.closest?.(`.${TABBED_CONTAINER_CLASS}`);
+  if (!(containerElement instanceof HTMLElement)) {
+    return;
+  }
+
+  syncTabbedContainerActiveContent(containerElement);
+});
 elements.bodyEditor.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) {
     return;
+  }
+
+  const tabActionButton = event.target.closest("[data-tab-action]");
+  if (tabActionButton instanceof HTMLElement) {
+    const containerElement = tabActionButton.closest(`.${TABBED_CONTAINER_CLASS}`);
+    if (!(containerElement instanceof HTMLElement)) {
+      return;
+    }
+
+    const action = tabActionButton.getAttribute("data-tab-action");
+    if (action === "add") {
+      addTabbedContainerTab(containerElement);
+      return;
+    }
+
+    if (action === "remove") {
+      removeTabbedContainerTab(containerElement);
+      return;
+    }
+
+    if (action === "delete-container") {
+      containerElement.remove();
+      handleLiveEdit();
+      return;
+    }
+  }
+
+  const tabButton = event.target.closest("[data-tab-id]");
+  if (tabButton instanceof HTMLElement) {
+    const containerElement = tabButton.closest(`.${TABBED_CONTAINER_CLASS}`);
+    if (containerElement instanceof HTMLElement) {
+      switchTabbedContainerTab(containerElement, tabButton.getAttribute("data-tab-id"), "editor");
+      return;
+    }
   }
 
   const settingsButton = event.target.closest("[data-chart-settings='true']");
@@ -1973,6 +2401,36 @@ elements.bodyEditor.addEventListener("click", (event) => {
   const chartElement = settingsButton.closest(`.${CHART_CLASS}`);
   if (chartElement instanceof HTMLElement) {
     openChartEditor(chartElement);
+  }
+});
+elements.bodyEditor.addEventListener("dblclick", (event) => {
+  if (!(event.target instanceof Element)) {
+    return;
+  }
+
+  const tabButton = event.target.closest("[data-tab-id]");
+  if (!(tabButton instanceof HTMLElement)) {
+    return;
+  }
+
+  const containerElement = tabButton.closest(`.${TABBED_CONTAINER_CLASS}`);
+  if (containerElement instanceof HTMLElement) {
+    renameTabbedContainerTab(containerElement, tabButton.getAttribute("data-tab-id"));
+  }
+});
+elements.publishedBody.addEventListener("click", (event) => {
+  if (!(event.target instanceof Element)) {
+    return;
+  }
+
+  const tabButton = event.target.closest("[data-tab-id]");
+  if (!(tabButton instanceof HTMLElement)) {
+    return;
+  }
+
+  const containerElement = tabButton.closest(`.${TABBED_CONTAINER_CLASS}`);
+  if (containerElement instanceof HTMLElement) {
+    switchTabbedContainerTab(containerElement, tabButton.getAttribute("data-tab-id"), "published");
   }
 });
 elements.bodyEditor.addEventListener("dragstart", (event) => {
@@ -2074,6 +2532,28 @@ elements.bodyEditor.addEventListener("pointerdown", (event) => {
     updateToolbarSelectionState();
   });
 });
+elements.bodyEditor.addEventListener("mousedown", (event) => {
+  if (!state.tabAreaDrawMode || event.button !== 0) {
+    return;
+  }
+
+  if (!(event.target instanceof Element) || event.target.closest(`.${TABBED_CONTAINER_CLASS}, .${CHART_CLASS}, button, a, input, select, textarea`)) {
+    return;
+  }
+
+  event.preventDefault();
+  const rect = elements.bodyEditor.getBoundingClientRect();
+  const startX = event.clientX - rect.left + elements.bodyEditor.scrollLeft;
+  const startY = event.clientY - rect.top + elements.bodyEditor.scrollTop;
+  const previewElement = document.createElement("div");
+  previewElement.className = "tab-area-draw-preview";
+  previewElement.style.left = `${startX}px`;
+  previewElement.style.top = `${startY}px`;
+  previewElement.style.width = "0px";
+  previewElement.style.height = "0px";
+  elements.bodyEditor.appendChild(previewElement);
+  tabAreaDrawState = { startX, startY, previewElement };
+});
 elements.bodyEditor.addEventListener("mousedown", placeCaretFromPoint);
 
 elements.richToolbar.addEventListener("mousedown", (event) => {
@@ -2121,6 +2601,14 @@ elements.fontSizeSelect.addEventListener("change", () => {
 
 elements.generateContentButton.addEventListener("click", () => {
   loadExampleContentIntoEditor();
+});
+
+elements.createTabAreaButton.addEventListener("click", () => {
+  toggleTabAreaDrawMode();
+});
+
+elements.sidebarToggleButton.addEventListener("click", () => {
+  toggleSidebarMinimized();
 });
 
 elements.chartMenuTrigger.addEventListener("click", () => {
@@ -2171,8 +2659,33 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && chartEditorState.open) {
     closeChartMenu();
   }
+
+  if (event.key === "Escape" && state.tabAreaDrawMode) {
+    toggleTabAreaDrawMode(false);
+  }
+
+  if ((event.key === "Delete" || event.key === "Backspace")
+      && state.routeMode === "workspace-edit"
+      && !(event.target instanceof HTMLElement && event.target.closest("input, textarea, select, [contenteditable='true']"))
+      && deleteSelectedChart()) {
+    event.preventDefault();
+  }
 });
 document.addEventListener("pointermove", (event) => {
+  if (tabAreaDrawState?.previewElement?.isConnected) {
+    const rect = elements.bodyEditor.getBoundingClientRect();
+    const currentX = event.clientX - rect.left + elements.bodyEditor.scrollLeft;
+    const currentY = event.clientY - rect.top + elements.bodyEditor.scrollTop;
+    const left = Math.max(0, Math.min(tabAreaDrawState.startX, currentX));
+    const top = Math.max(0, Math.min(tabAreaDrawState.startY, currentY));
+    const width = Math.abs(currentX - tabAreaDrawState.startX);
+    const height = Math.abs(currentY - tabAreaDrawState.startY);
+    tabAreaDrawState.previewElement.style.left = `${left}px`;
+    tabAreaDrawState.previewElement.style.top = `${top}px`;
+    tabAreaDrawState.previewElement.style.width = `${width}px`;
+    tabAreaDrawState.previewElement.style.height = `${height}px`;
+  }
+
   if (!chartResizeState) {
     return;
   }
@@ -2180,6 +2693,22 @@ document.addEventListener("pointermove", (event) => {
   resizeChartFromPointer(event.clientX);
 });
 document.addEventListener("pointerup", () => {
+  if (tabAreaDrawState?.previewElement?.isConnected) {
+    const previewRect = tabAreaDrawState.previewElement.getBoundingClientRect();
+    const editorRect = elements.bodyEditor.getBoundingClientRect();
+    const width = Math.round(previewRect.width);
+    const height = Math.round(previewRect.height);
+    const left = Math.round(previewRect.left - editorRect.left + elements.bodyEditor.scrollLeft);
+    const top = Math.round(previewRect.top - editorRect.top + elements.bodyEditor.scrollTop);
+    tabAreaDrawState.previewElement.remove();
+    tabAreaDrawState = null;
+    toggleTabAreaDrawMode(false);
+
+    if (width >= 140 && height >= 110) {
+      createTabbedContainerAtRect({ x: left, y: top, width, height });
+    }
+  }
+
   if (!chartResizeState) {
     return;
   }

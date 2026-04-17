@@ -16,11 +16,19 @@
     <aside class="sidebar">
       <div class="sidebar-panel">
         <div class="panel-header">
-          <div>
+          <div class="panel-header-copy">
             <p class="section-label">Library</p>
             <h2>Pages</h2>
           </div>
-          <span class="pill" id="page-count">0 pages</span>
+          <div class="panel-header-actions">
+            <span class="pill" id="page-count">0 pages</span>
+            <button class="sidebar-toggle-button" id="sidebar-toggle-button" type="button" aria-label="Minimize left panel" title="Minimize left panel">
+              <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <path d="M10.5 3.5 6 8l4.5 4.5" />
+                <path d="M7.5 3.5 3 8l4.5 4.5" />
+              </svg>
+            </button>
+          </div>
         </div>
         <div class="sidebar-actions sidebar-actions-compact">
           <button class="button button-primary" id="new-page-button" type="button">New page</button>
@@ -66,6 +74,14 @@
             </div>
           </div>
           <button class="button button-secondary toolbar-button" id="generate-content-button" type="button">Generate content</button>
+          <button class="button button-secondary toolbar-button" id="create-tab-area-button" type="button" aria-label="Create tab area" title="Create tab area">
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path d="M2.5 4.5A1.5 1.5 0 0 1 4 3h8a1.5 1.5 0 0 1 1.5 1.5V6H2.5V4.5Z"></path>
+              <path d="M2.5 7H13.5V12A1.5 1.5 0 0 1 12 13.5H4A1.5 1.5 0 0 1 2.5 12V7Z"></path>
+              <path d="M5 4.5h2"></path>
+            </svg>
+            <span>Create Tab Area</span>
+          </button>
           <a class="button button-secondary toolbar-link-publish" id="page-route-link" href="#/page/home-dashboard">Publish page</a>
           <a class="button button-secondary toolbar-link-edit" id="top-edit-route-link" href="#/edit/home-dashboard" hidden>Edit page</a>
         </div>

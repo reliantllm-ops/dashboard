@@ -17,21 +17,6 @@
       <div class="sidebar-panel">
         <div class="panel-header">
           <div>
-            <p class="section-label">Sync</p>
-            <h2>Firebase</h2>
-          </div>
-          <span class="pill" id="sync-mode">Local mode</span>
-        </div>
-        <p class="sync-copy" id="auth-status">Connect Firebase config to enable shared pages and Google sign-in.</p>
-        <div class="sidebar-actions">
-          <button class="button button-primary" id="sign-in-button" type="button">Sign in</button>
-          <button class="button button-secondary" id="sign-out-button" type="button">Sign out</button>
-        </div>
-      </div>
-
-      <div class="sidebar-panel">
-        <div class="panel-header">
-          <div>
             <p class="section-label">Library</p>
             <h2>Pages</h2>
           </div>
@@ -80,15 +65,19 @@
               <button class="chart-menu-item" data-chart-type="donut" type="button">Donut chart</button>
             </div>
           </div>
+          <button class="button button-secondary toolbar-button" id="generate-content-button" type="button">Generate content</button>
           <a class="button button-secondary toolbar-link-publish" id="page-route-link" href="#/page/home-dashboard">Publish page</a>
+          <a class="button button-secondary toolbar-link-edit" id="top-edit-route-link" href="#/edit/home-dashboard" hidden>Edit page</a>
         </div>
       </div>
 
       <section class="workspace-grid">
         <article class="card editor-card">
             <form class="editor-form" id="editor-form">
-              <div class="field">
-                <span class="field-label">Body</span>
+              <div class="editor-title-row">
+                <div id="page-title-editor" class="page-title-editor" contenteditable="true" aria-label="Page title" data-placeholder="Untitiled page"></div>
+              </div>
+              <div class="field body-field">
                 <div id="page-body-editor" class="body-editor"></div>
               </div>
 
@@ -115,33 +104,7 @@
     </main>
   </div>
 
-  <div class="sync-dock" id="sync-dock">
-    <div class="sync-dock-inner">
-      <div class="sync-dock-copy">
-        <p class="section-label">Sync</p>
-        <p class="sync-dock-status" id="sync-dock-status">Local mode</p>
-      </div>
-      <button class="button button-primary sync-dock-button" id="sync-dock-button" type="button" aria-controls="sync-sheet" aria-expanded="false">Firebase sync</button>
-    </div>
-  </div>
-
-  <aside class="sync-sheet" id="sync-sheet" hidden>
-    <div class="sync-sheet-scrim" id="sync-sheet-scrim"></div>
-    <div class="sync-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sync-sheet-title">
-      <div class="panel-header">
-        <div>
-          <p class="section-label">Sync</p>
-          <h2 id="sync-sheet-title">Firebase sync</h2>
-        </div>
-        <button class="button button-secondary" id="sync-sheet-close-button" type="button">Close</button>
-      </div>
-      <p class="sync-copy" id="sync-sheet-status">Connect Firebase config to enable shared pages and Google sign-in.</p>
-      <div class="sidebar-actions">
-        <button class="button button-primary" id="sync-sheet-sign-in-button" type="button">Sign in</button>
-        <button class="button button-secondary" id="sync-sheet-sign-out-button" type="button">Sign out</button>
-      </div>
-    </div>
-  </aside>
+  <footer class="dashboard-bottom-bar" aria-hidden="true"></footer>
 
   <aside class="chart-editor-flyout" id="chart-editor-flyout" hidden>
     <div class="chart-editor-flyout-inner">

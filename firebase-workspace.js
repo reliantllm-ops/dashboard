@@ -1,25 +1,3 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import {
-  getAuth,
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut
-} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  getFirestore,
-  onSnapshot,
-  orderBy,
-  query,
-  setDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
-import { firebaseProject } from "./firebase-config.js";
-
 const STORAGE_KEY = "engineering-workspace-pages";
 const CHART_CLASS = "chart-block";
 const CHART_DATA_ATTRIBUTE = "data-chart";
@@ -117,11 +95,7 @@ const state = {
   activePageId: null,
   searchTerm: "",
   lastSavedAt: null,
-  syncMode: firebaseProject.enabled ? "firebase" : "local",
-  authReady: false,
-  user: null,
-  routeMode: "workspace-home",
-  syncSheetOpen: false
+  routeMode: "workspace-home"
 };
 
 const chartEditorState = {
@@ -143,6 +117,7 @@ const elements = {
   editorForm: document.querySelector("#editor-form"),
   publishedTitle: document.querySelector("#published-title"),
   publishedBody: document.querySelector("#published-body"),
+  pageTitleEditor: document.querySelector("#page-title-editor"),
   bodyEditor: document.querySelector("#page-body-editor"),
   richToolbar: document.querySelector("#rich-toolbar"),
   chartMenu: document.querySelector("#chart-menu"),
@@ -151,22 +126,12 @@ const elements = {
   chartEditorFlyout: document.querySelector("#chart-editor-flyout"),
   fontFamilySelect: document.querySelector("#font-family-select"),
   fontSizeSelect: document.querySelector("#font-size-select"),
+  generateContentButton: document.querySelector("#generate-content-button"),
   newPageButton: document.querySelector("#new-page-button"),
   duplicatePageButton: document.querySelector("#duplicate-page-button"),
   deletePageButton: document.querySelector("#delete-page-button"),
-  syncMode: document.querySelector("#sync-mode"),
-  authStatus: document.querySelector("#auth-status"),
-  signInButton: document.querySelector("#sign-in-button"),
-  signOutButton: document.querySelector("#sign-out-button"),
-  syncDockStatus: document.querySelector("#sync-dock-status"),
-  syncDockButton: document.querySelector("#sync-dock-button"),
-  syncSheet: document.querySelector("#sync-sheet"),
-  syncSheetScrim: document.querySelector("#sync-sheet-scrim"),
-  syncSheetStatus: document.querySelector("#sync-sheet-status"),
-  syncSheetCloseButton: document.querySelector("#sync-sheet-close-button"),
-  syncSheetSignInButton: document.querySelector("#sync-sheet-sign-in-button"),
-  syncSheetSignOutButton: document.querySelector("#sync-sheet-sign-out-button"),
   pageRouteLink: document.querySelector("#page-route-link"),
+  topEditRouteLink: document.querySelector("#top-edit-route-link"),
   editRouteLink: document.querySelector("#edit-route-link"),
   chartTitleInput: document.querySelector("#chart-title-input"),
   chartSubtitleInput: document.querySelector("#chart-subtitle-input"),
@@ -190,10 +155,6 @@ const elements = {
   chartSaveButton: document.querySelector("#chart-save-button"),
   chartCancelButton: document.querySelector("#chart-cancel-button")
 };
-
-let auth = null;
-let db = null;
-let unsubscribePages = null;
 
 function loadLocalPages() {
   try {
@@ -223,42 +184,6 @@ function renderSaveState(label) {
 
 function renderPageCount() {
   elements.pageCount.textContent = `${state.pages.length} pages`;
-}
-
-function renderSyncState() {
-  let authMessage = "Connect Firebase config to enable shared pages and Google sign-in.";
-  let dockLabel = "Local mode";
-
-  if (state.syncMode === "firebase") {
-    elements.syncMode.textContent = "Firebase";
-    dockLabel = state.user ? "Firebase connected" : "Firebase available";
-    if (state.user) {
-      const label = state.user.displayName || state.user.email || "Signed-in user";
-      authMessage = `Cloud sync enabled for ${label}.`;
-    } else if (state.authReady) {
-      authMessage = "Sign in with Google to load and edit shared workspace pages.";
-    } else {
-      authMessage = "Connecting to Firebase authentication.";
-    }
-  } else {
-    elements.syncMode.textContent = "Local mode";
-    dockLabel = "Local mode";
-  }
-
-  elements.authStatus.textContent = authMessage;
-  elements.syncDockStatus.textContent = dockLabel;
-  elements.syncSheetStatus.textContent = authMessage;
-  elements.signInButton.disabled = state.syncMode !== "firebase" || !state.authReady || !!state.user;
-  elements.signOutButton.disabled = state.syncMode !== "firebase" || !state.user;
-  elements.syncSheetSignInButton.disabled = elements.signInButton.disabled;
-  elements.syncSheetSignOutButton.disabled = elements.signOutButton.disabled;
-}
-
-function setSyncSheetOpen(isOpen) {
-  state.syncSheetOpen = isOpen;
-  elements.syncSheet.hidden = !isOpen;
-  elements.syncDockButton.setAttribute("aria-expanded", String(isOpen));
-  document.body.classList.toggle("sync-sheet-open", isOpen);
 }
 
 function parseRoute() {
@@ -957,6 +882,37 @@ function bodyBlocksToRenderedHtml(blocks, mode = "published") {
   }).join("");
 }
 
+function defaultExampleBodyBlocks() {
+  return sourceToBodyBlocks(`# Example Page
+
+Use this page as a starting point for team updates, operating notes, or project briefs.
+
+## Overview
+- Purpose: summarize the page in one sentence
+- Owner: platform engineering
+- Status: active draft
+
+## This Week
+- Ship the highest-priority milestone
+- Resolve the main operational blocker
+- Confirm dependencies with partner teams
+
+## Key Metrics
+- Delivery predictability: 91%
+- Open incidents: 2
+- Current risk level: medium
+
+## Decisions
+- Keep rollout behind a feature flag
+- Review analytics after the first release window
+- Reassess scope after customer feedback
+
+## Next Steps
+- Update this section with action items
+- Add charts if the page needs visual reporting
+- Publish once the draft is ready for readers`);
+}
+
 function textFromBodyBlocks(blocks) {
   return blocks.map((block) => {
     if (block.type === "chart") {
@@ -1407,7 +1363,7 @@ function normalizePage(page) {
   const body = page.body || bodyBlocksToStorageHtml(bodyBlocks);
   return {
     id: page.id,
-    title: page.title || "Untitled page",
+    title: page.title || "Untitiled page",
     category: page.category || "Reference",
     tags: Array.isArray(page.tags) ? page.tags : [],
     summary: page.summary || "",
@@ -1432,14 +1388,21 @@ function renderPageList() {
   elements.pageList.innerHTML = pages
     .map((page) => {
       const activeClass = page.id === state.activePageId ? "active" : "";
+      const deleteDisabled = state.pages.length === 1 ? "disabled" : "";
 
       return `
-        <button class="page-item ${activeClass}" data-page-id="${page.id}" type="button">
+        <div class="page-item ${activeClass}">
           <div class="page-item-header">
-            <h3>${escapeHtml(page.title)}</h3>
-            <span class="pill">${escapeHtml(page.category)}</span>
+            <button class="page-item-link" data-page-id="${page.id}" type="button">
+              <h3>${escapeHtml(page.title)}</h3>
+            </button>
+            <button class="page-item-delete" data-delete-page-id="${page.id}" type="button" aria-label="Delete ${escapeHtml(page.title)}" title="Delete page" ${deleteDisabled}>
+              <svg class="page-item-delete-icon" aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v8h-2V9Zm4 0h2v8h-2V9ZM7 9h2v8H7V9Zm-1 11V8h12v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2Z" fill="currentColor"/>
+              </svg>
+            </button>
           </div>
-        </button>
+        </div>
       `;
     })
     .join("");
@@ -1454,9 +1417,21 @@ function renderEditor() {
   chartEditorState.chartElement = null;
   chartEditorState.originalChart = null;
   clearSelectedChart();
+  elements.pageTitleEditor.textContent = page.title || "Untitiled page";
   elements.bodyEditor.innerHTML = bodyBlocksToRenderedHtml(page.bodyBlocks || [makeTextBlock()], "editor");
-  elements.deletePageButton.disabled = state.pages.length === 1 || (state.syncMode === "firebase" && !state.user);
+  elements.deletePageButton.disabled = state.pages.length === 1;
   updateToolbarSelectionState();
+}
+
+function loadExampleContentIntoEditor() {
+  clearSelectedChart();
+  chartEditorState.chartElement = null;
+  chartEditorState.originalChart = null;
+  renderChartEditorFlyout();
+  elements.pageTitleEditor.textContent = "Untitiled page";
+  elements.bodyEditor.innerHTML = bodyBlocksToRenderedHtml(defaultExampleBodyBlocks(), "editor");
+  updateToolbarSelectionState();
+  renderSaveState("Unsaved");
 }
 
 function renderPublishedPage() {
@@ -1465,7 +1440,7 @@ function renderPublishedPage() {
     return;
   }
 
-  elements.publishedTitle.textContent = page.title || "Untitled page";
+  elements.publishedTitle.textContent = page.title || "Untitiled page";
   elements.publishedBody.innerHTML = renderStoredBody(page.bodyBlocks || page.body);
 }
 
@@ -1479,8 +1454,10 @@ function renderRouteLinks() {
   const editHash = `#/edit/${encodeURIComponent(page.id)}`;
 
   elements.pageRouteLink.href = pageHash;
+  elements.topEditRouteLink.href = editHash;
   elements.editRouteLink.href = editHash;
   elements.pageRouteLink.hidden = state.routeMode === "page";
+  elements.topEditRouteLink.hidden = state.routeMode !== "page";
   elements.editRouteLink.hidden = state.routeMode === "workspace-edit";
 }
 
@@ -1493,7 +1470,6 @@ function renderAll() {
   renderPublishedPage();
   renderRouteLinks();
   renderPageCount();
-  renderSyncState();
 }
 
 function uniqueIdFromTitle(title) {
@@ -1517,7 +1493,7 @@ function uniqueIdFromTitle(title) {
 
 function buildPageFromForm(existingId = null) {
   const active = getActivePage();
-  const title = active?.title || "Untitled page";
+  const title = (elements.pageTitleEditor.textContent || "").replaceAll("\u200B", "").trim() || "Untitiled page";
   const bodyBlocks = editorBodyBlocks();
   return {
     id: existingId || uniqueIdFromTitle(title),
@@ -1532,23 +1508,13 @@ function buildPageFromForm(existingId = null) {
 
 async function createBlankPage() {
   const page = normalizePage({
-    id: uniqueIdFromTitle("Untitled page"),
-    title: "Untitled page",
+    id: uniqueIdFromTitle("Untitiled page"),
+    title: "Untitiled page",
     category: "Reference",
     tags: ["new"],
     summary: "Describe what this page covers.",
-    body: "# Untitled page\n\nStart writing here."
+    body: "<p>Start writing here.</p>"
   });
-
-  if (state.syncMode === "firebase") {
-    if (!state.user) {
-      renderSaveState("Sign in");
-      return;
-    }
-
-    await upsertFirebasePage(page, true);
-    return;
-  }
 
   state.pages.unshift(page);
   state.activePageId = page.id;
@@ -1567,16 +1533,6 @@ async function duplicateActivePage() {
     title: `${active.title} copy`
   });
 
-  if (state.syncMode === "firebase") {
-    if (!state.user) {
-      renderSaveState("Sign in");
-      return;
-    }
-
-    await upsertFirebasePage(page, true);
-    return;
-  }
-
   state.pages.unshift(page);
   state.activePageId = page.id;
   saveLocalPages();
@@ -1586,63 +1542,40 @@ async function duplicateActivePage() {
   renderAll();
 }
 
-async function deleteActivePage() {
+async function deletePageById(pageId) {
   if (state.pages.length === 1) {
     return;
   }
 
-  if (state.syncMode === "firebase") {
-    if (!state.user) {
-      renderSaveState("Sign in");
-      return;
-    }
+  const deletingActivePage = pageId === state.activePageId;
+  const nextRouteMode = state.routeMode === "page" ? "page" : "workspace-edit";
+  state.pages = state.pages.filter((page) => page.id !== pageId);
 
-    await deleteDoc(doc(db, "pages", state.activePageId));
-    renderSaveState("Deleted");
-    return;
+  if (deletingActivePage) {
+    state.activePageId = state.pages[0].id;
   }
 
-  state.pages = state.pages.filter((page) => page.id !== state.activePageId);
-  state.activePageId = state.pages[0].id;
   saveLocalPages();
   state.lastSavedAt = new Date();
   renderSaveState("Deleted");
-  setRoute("workspace-home", state.activePageId);
-  renderAll();
-}
 
-async function upsertFirebasePage(page, isNewPage) {
-  const pageRef = doc(db, "pages", page.id);
-  const payload = {
-    ...page,
-    updatedAt: serverTimestamp(),
-    updatedBy: state.user?.displayName || state.user?.email || "Unknown"
-  };
-
-  if (isNewPage) {
-    payload.createdAt = serverTimestamp();
+  if (deletingActivePage) {
+    setRoute(nextRouteMode, state.activePageId);
+    renderAll();
+    return;
   }
 
-  await setDoc(pageRef, payload, { merge: true });
-  state.activePageId = page.id;
-  state.lastSavedAt = new Date();
-  renderSaveState("Saved");
-  setRoute(state.routeMode === "page" ? "page" : "workspace-edit", page.id);
+  renderPageList();
+  renderPageCount();
+}
+
+async function deleteActivePage() {
+  await deletePageById(state.activePageId);
 }
 
 async function updateActivePageFromForm() {
   const active = getActivePage();
   const page = buildPageFromForm(active?.id);
-
-  if (state.syncMode === "firebase") {
-    if (!state.user) {
-      renderSaveState("Sign in");
-      return;
-    }
-
-    await upsertFirebasePage(page, false);
-    return;
-  }
 
   const index = state.pages.findIndex((entry) => entry.id === active.id);
   state.pages[index] = { ...active, ...page };
@@ -1652,6 +1585,7 @@ async function updateActivePageFromForm() {
   renderSaveState("Saved");
   setRoute(state.routeMode === "page" ? "page" : "workspace-edit", page.id);
   renderAll();
+  return page;
 }
 
 function handleLiveEdit() {
@@ -1660,7 +1594,8 @@ function handleLiveEdit() {
     return;
   }
 
-  if (active.body !== bodyBlocksToStorageHtml(editorBodyBlocks())) {
+  const currentTitle = (elements.pageTitleEditor.textContent || "").replaceAll("\u200B", "").trim() || "Untitiled page";
+  if (active.title !== currentTitle || active.body !== bodyBlocksToStorageHtml(editorBodyBlocks())) {
     renderSaveState("Unsaved");
   }
 }
@@ -1906,85 +1841,13 @@ function previewChartEditorChanges() {
   handleLiveEdit();
 }
 
-async function seedFirebasePages() {
-  const existing = await getDocs(collection(db, "pages"));
-  if (!existing.empty) {
-    return;
-  }
-
-  await Promise.all(
-    defaultPages.map((page) =>
-      setDoc(doc(db, "pages", page.id), {
-        ...page,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        updatedBy: state.user?.displayName || state.user?.email || "Seed data"
-      })
-    )
-  );
-}
-
-function connectFirebase() {
-  const { enabled, config } = firebaseProject;
-  if (!enabled || !config.apiKey || !config.projectId || !config.appId) {
-    renderAll();
-    return;
-  }
-
-  const app = initializeApp(config);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  state.syncMode = "firebase";
-
-  onAuthStateChanged(auth, async (user) => {
-    state.user = user;
-    state.authReady = true;
-    renderSyncState();
-
-    if (unsubscribePages) {
-      unsubscribePages();
-      unsubscribePages = null;
-    }
-
-      if (!user) {
-        state.pages = loadLocalPages().map(normalizePage);
-        state.activePageId = state.pages[0]?.id ?? null;
-        renderAll();
-        return;
-      }
-
-    const pagesQuery = query(collection(db, "pages"), orderBy("title"));
-    unsubscribePages = onSnapshot(pagesQuery, async (snapshot) => {
-      if (snapshot.empty) {
-        await seedFirebasePages();
-        return;
-      }
-
-      state.pages = snapshot.docs.map((entry) => normalizePage(entry.data()));
-      ensureActivePage();
-      renderAll();
-    });
-  });
-}
-
-async function handleSignIn() {
-  if (!auth) {
-    return;
-  }
-
-  const provider = new GoogleAuthProvider();
-  await signInWithPopup(auth, provider);
-}
-
-async function handleSignOut() {
-  if (!auth) {
-    return;
-  }
-
-  await signOut(auth);
-}
-
 elements.pageList.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete-page-id]");
+  if (deleteButton) {
+    deletePageById(deleteButton.getAttribute("data-delete-page-id"));
+    return;
+  }
+
   const button = event.target.closest("[data-page-id]");
   if (!button) {
     return;
@@ -2007,6 +1870,12 @@ elements.editorForm.addEventListener("submit", async (event) => {
   await updateActivePageFromForm();
 });
 
+elements.pageRouteLink.addEventListener("click", async (event) => {
+  event.preventDefault();
+  const page = await updateActivePageFromForm();
+  setRoute("page", page.id);
+});
+
 elements.newPageButton.addEventListener("click", async () => {
   await createBlankPage();
 });
@@ -2019,34 +1888,7 @@ elements.deletePageButton.addEventListener("click", async () => {
   await deleteActivePage();
 });
 
-elements.signInButton.addEventListener("click", async () => {
-  await handleSignIn();
-});
-
-elements.signOutButton.addEventListener("click", async () => {
-  await handleSignOut();
-});
-
-elements.syncDockButton.addEventListener("click", () => {
-  setSyncSheetOpen(!state.syncSheetOpen);
-});
-
-elements.syncSheetCloseButton.addEventListener("click", () => {
-  setSyncSheetOpen(false);
-});
-
-elements.syncSheetScrim.addEventListener("click", () => {
-  setSyncSheetOpen(false);
-});
-
-elements.syncSheetSignInButton.addEventListener("click", async () => {
-  await handleSignIn();
-});
-
-elements.syncSheetSignOutButton.addEventListener("click", async () => {
-  await handleSignOut();
-});
-
+elements.pageTitleEditor.addEventListener("input", handleLiveEdit);
 elements.bodyEditor.addEventListener("input", handleLiveEdit);
 elements.bodyEditor.addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) {
@@ -2210,6 +2052,10 @@ elements.fontSizeSelect.addEventListener("change", () => {
   updateToolbarSelectionState();
 });
 
+elements.generateContentButton.addEventListener("click", () => {
+  loadExampleContentIntoEditor();
+});
+
 elements.chartMenuTrigger.addEventListener("click", () => {
   toggleChartMenu();
 });
@@ -2255,8 +2101,8 @@ document.addEventListener("mousedown", (event) => {
   }
 });
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && state.syncSheetOpen) {
-    setSyncSheetOpen(false);
+  if (event.key === "Escape" && chartEditorState.open) {
+    closeChartMenu();
   }
 });
 document.addEventListener("pointermove", (event) => {
@@ -2284,4 +2130,3 @@ window.addEventListener("hashchange", () => {
 
 applyRoute();
 renderAll();
-connectFirebase();

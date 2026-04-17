@@ -6,6 +6,28 @@ An editable engineering workspace with wiki-style pages, Firebase-ready cloud sy
 
 Open `index.html` directly in a browser.
 
+## Smoke tests
+
+Use the smoke suite after UI or behavior changes to catch basic regressions.
+
+1. Run `npm install`
+2. Run `npx playwright install`
+3. In one terminal, run `npm run serve:test`
+4. In a second terminal, run `npm run test:smoke`
+
+What it checks:
+
+- App loads with the default pages
+- New page creation works
+- Saving edited content works
+- Publish and edit routing works
+- Duplicate and delete flows work
+
+Optional:
+
+- Run `npm run test:smoke:headed` to watch the browser
+- Run `npm run test:smoke:ui` for Playwright's UI runner
+
 ## Firebase setup
 
 1. Create a Firebase project and add a Web app

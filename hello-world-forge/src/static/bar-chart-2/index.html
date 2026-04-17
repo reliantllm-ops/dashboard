@@ -41,20 +41,27 @@
           title: "Quarterly sales",
           data: "Q1,12\nQ2,18\nQ3,9\nQ4,22",
           color: "blue",
+          gradientStartColor: "blue",
+          gradientEndColor: "teal",
+          gradientStops: [
+            { color: "blue", offset: 0 },
+            { color: "teal", offset: 100 }
+          ],
+          axisInterval: 10,
           width: 480,
           height: 320,
           barWidth: 48,
           barGap: 12,
-          useGradient: false
+          useGradient: true
         };
 
         const COLOR_OPTIONS = [
-          { value: "blue", hex: "#0052CC", gradientHex: "#4C9AFF" },
-          { value: "green", hex: "#36B37E", gradientHex: "#79F2C0" },
-          { value: "red", hex: "#DE350B", gradientHex: "#FF8F73" },
-          { value: "orange", hex: "#FF8B00", gradientHex: "#FFC400" },
-          { value: "purple", hex: "#6554C0", gradientHex: "#998DD9" },
-          { value: "teal", hex: "#00B8D9", gradientHex: "#79E2F2" }
+          { value: "blue", hex: "#0052CC" },
+          { value: "green", hex: "#36B37E" },
+          { value: "red", hex: "#DE350B" },
+          { value: "orange", hex: "#FF8B00" },
+          { value: "purple", hex: "#6554C0" },
+          { value: "teal", hex: "#00B8D9" }
         ];
 
         const FRAME_READY_EVENT = "bar-chart-2:ready";
@@ -83,22 +90,27 @@
           return Math.min(Math.max(value, min), max);
         };
 
-        const normalizeBoolean = (rawValue, fallback = false) => {
-          if (typeof rawValue === "boolean") {
-            return rawValue;
+        const normalizeGradientStops = (rawValue, fallbackStartColor, fallbackEndColor) => {
+          if (!Array.isArray(rawValue)) {
+            return [
+              { color: normalizeColor(fallbackStartColor), offset: 0 },
+              { color: normalizeColor(fallbackEndColor), offset: 100 }
+            ];
           }
 
-          if (typeof rawValue === "string") {
-            const value = rawValue.trim().toLowerCase();
-            if (value === "true") {
-              return true;
-            }
-            if (value === "false") {
-              return false;
-            }
-          }
+          const normalized = rawValue
+            .map((stop, index) => ({
+              color: normalizeColor(stop && stop.color),
+              offset: normalizeDimension(stop && stop.offset, index === 0 ? 0 : 100, 0, 100)
+            }))
+            .sort((left, right) => left.offset - right.offset);
 
-          return fallback;
+          return normalized.length >= 2
+            ? normalized
+            : [
+                { color: normalizeColor(fallbackStartColor), offset: 0 },
+                { color: normalizeColor(fallbackEndColor), offset: 100 }
+              ];
         };
 
         const escapeXml = (value) =>
@@ -129,6 +141,11 @@
         const createPayloadFromConfig = (config) => {
           const color = normalizeColor(config.color);
           const colorOption = COLOR_OPTIONS.find((option) => option.value === color) || COLOR_OPTIONS[0];
+          const gradientStartColor = normalizeColor(config.gradientStartColor || config.color || DEFAULTS.gradientStartColor);
+          const gradientEndColor = normalizeColor(config.gradientEndColor || config.color || DEFAULTS.gradientEndColor);
+          const gradientStartOption = COLOR_OPTIONS.find((option) => option.value === gradientStartColor) || colorOption;
+          const gradientEndOption = COLOR_OPTIONS.find((option) => option.value === gradientEndColor) || colorOption;
+          const gradientStops = normalizeGradientStops(config.gradientStops, gradientStartColor, gradientEndColor);
 
           return {
             title: String(config.title ?? "").trim() || DEFAULTS.title,
@@ -137,17 +154,27 @@
             height: normalizeDimension(config.height, DEFAULTS.height, 240, 700),
             barWidth: normalizeDimension(config.barWidth, DEFAULTS.barWidth, 12, 120),
             barGap: normalizeDimension(config.barGap, DEFAULTS.barGap, 0, 48),
-            useGradient: normalizeBoolean(config.useGradient, DEFAULTS.useGradient),
+            axisInterval: normalizeDimension(config.axisInterval, DEFAULTS.axisInterval, 1, 100),
+            useGradient: true,
             color,
             colorHex: colorOption.hex,
-            gradientHex: colorOption.gradientHex
+            gradientStartColor,
+            gradientStartHex: gradientStartOption.hex,
+            gradientEndColor,
+            gradientEndHex: gradientEndOption.hex,
+            gradientStops: gradientStops.map((stop) => ({
+              color: stop.color,
+              offset: stop.offset,
+              hex: (COLOR_OPTIONS.find((option) => option.value === stop.color) || colorOption).hex
+            }))
           };
         };
 
         const buildSvg = (payload) => {
           const rows = payload.rows;
-          const maxValue = Math.max(...rows.map((row) => row.value), 20, 1);
-          const titleHeight = 20;
+          const rawMaxValue = Math.max(...rows.map((row) => row.value), 1);
+          const maxValue = Math.max(rawMaxValue, 10);
+          const titleHeight = 0;
           const valueLabelHeight = 22;
           const plotTop = titleHeight + valueLabelHeight;
           const plotHeight = payload.height;
@@ -161,28 +188,35 @@
           const svgWidth = Math.max(payload.width, leftPad + innerWidth + rightPad);
           const svgHeight = axisY + axisGap + labelRowHeight;
           const plotRight = svgWidth - rightPad;
-          const guides = [10, 20];
+          const guides = Array.from(
+            { length: Math.floor(rawMaxValue / payload.axisInterval) },
+            (_, index) => (index + 1) * payload.axisInterval
+          );
+          const dividerX =
+            rows.length === 2 ? leftPad + payload.barWidth + payload.barGap / 2 : null;
 
-          const defs = payload.useGradient
-            ? "<defs>" +
-              rows
-                .map(
-                  (_, index) =>
-                    '<linearGradient id="bar-gradient-' +
-                    index +
-                    '" x1="0" y1="0" x2="0" y2="1">' +
-                    '<stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>' +
-                    '<stop offset="18%" stop-color="' +
-                    payload.gradientHex +
-                    '" stop-opacity="1"/>' +
-                    '<stop offset="100%" stop-color="' +
-                    payload.colorHex +
-                    '" stop-opacity="1"/>' +
-                    "</linearGradient>"
-                )
-                .join("") +
-              "</defs>"
-            : "";
+          const defs =
+            "<defs>" +
+            rows
+              .map(
+                (_, index) =>
+                  '<linearGradient id="bar-gradient-' +
+                  index +
+                  '" x1="0" y1="0" x2="0" y2="1">' +
+                  payload.gradientStops
+                    .map(
+                      (stop) =>
+                        '<stop offset="' +
+                        stop.offset +
+                        '%" stop-color="' +
+                        stop.hex +
+                        '" stop-opacity="1"/>'
+                    )
+                    .join("") +
+                  "</linearGradient>"
+              )
+              .join("") +
+            "</defs>";
 
           const guideMarkup = guides
             .map((guide) => {
@@ -197,6 +231,19 @@
               return '<text x="' + (leftPad - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="12" fill="#44546F">' + guide + "</text>";
             })
             .join("");
+
+          const dividerMarkup =
+            dividerX === null
+              ? ""
+              : '<line x1="' +
+                dividerX +
+                '" y1="' +
+                plotTop +
+                '" x2="' +
+                dividerX +
+                '" y2="' +
+                axisY +
+                '" stroke="#C1C7D0" stroke-width="1" />';
 
           const bars = rows
             .map((row, index) => {
@@ -224,9 +271,6 @@
             svgHeight +
             '">' +
             defs +
-            '<text x="0" y="14" font-size="14" font-weight="700" fill="#172B4D">' +
-            escapeXml(payload.title) +
-            "</text>" +
             guideMarkup +
             '<line x1="' +
             leftPad +
@@ -247,6 +291,7 @@
             axisY +
             '" stroke="#172B4D" stroke-width="2" />' +
             yLabels +
+            dividerMarkup +
             bars +
             "</svg>"
           );

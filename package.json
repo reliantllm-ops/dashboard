@@ -1,0 +1,13 @@
+{
+  "name": "engineering-workspace-smoke-tests",
+  "private": true,
+  "scripts": {
+    "serve:test": "node tests/server.js",
+    "test:smoke": "playwright test",
+    "test:smoke:headed": "playwright test --headed",
+    "test:smoke:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2"
+  }
+}

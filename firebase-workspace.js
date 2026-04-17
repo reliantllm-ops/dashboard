@@ -988,6 +988,20 @@ function clearSelectedChart() {
   selectedChartElement = null;
 }
 
+function currentSelectedChartElement() {
+  if (selectedChartElement?.isConnected) {
+    return selectedChartElement;
+  }
+
+  const chartElement = elements.bodyEditor.querySelector(`.${CHART_CLASS}.chart-block-selected`);
+  if (chartElement instanceof HTMLElement) {
+    selectedChartElement = chartElement;
+    return chartElement;
+  }
+
+  return null;
+}
+
 function selectChart(chartElement) {
   if (!(chartElement instanceof HTMLElement)) {
     return;
@@ -1573,29 +1587,49 @@ async function deleteActivePage() {
   await deletePageById(state.activePageId);
 }
 
-async function updateActivePageFromForm() {
+function activePageHasUnsavedChanges() {
   const active = getActivePage();
-  const page = buildPageFromForm(active?.id);
+  if (!active) {
+    return false;
+  }
 
+  const currentTitle = (elements.pageTitleEditor.textContent || "").replaceAll("\u200B", "").trim() || "Untitiled page";
+  return active.title !== currentTitle || active.body !== bodyBlocksToStorageHtml(editorBodyBlocks());
+}
+
+async function saveActivePageDraft() {
+  const active = getActivePage();
+  if (!active) {
+    return null;
+  }
+
+  if (!activePageHasUnsavedChanges()) {
+    return active;
+  }
+
+  const page = buildPageFromForm(active?.id);
   const index = state.pages.findIndex((entry) => entry.id === active.id);
   state.pages[index] = { ...active, ...page };
   state.activePageId = page.id;
   saveLocalPages();
   state.lastSavedAt = new Date();
   renderSaveState("Saved");
+  return page;
+}
+
+async function updateActivePageFromForm() {
+  const page = await saveActivePageDraft();
+  if (!page) {
+    return null;
+  }
+
   setRoute(state.routeMode === "page" ? "page" : "workspace-edit", page.id);
   renderAll();
   return page;
 }
 
 function handleLiveEdit() {
-  const active = getActivePage();
-  if (!active) {
-    return;
-  }
-
-  const currentTitle = (elements.pageTitleEditor.textContent || "").replaceAll("\u200B", "").trim() || "Untitiled page";
-  if (active.title !== currentTitle || active.body !== bodyBlocksToStorageHtml(editorBodyBlocks())) {
+  if (activePageHasUnsavedChanges()) {
     renderSaveState("Unsaved");
   }
 }
@@ -1796,14 +1830,15 @@ function closeChartEditor({ revert = false } = {}) {
 }
 
 function deleteSelectedChart() {
-  if (!selectedChartElement?.isConnected) {
+  const activeChart = currentSelectedChartElement();
+  if (!activeChart) {
     clearSelectedChart();
     return false;
   }
 
-  const nextBlock = selectedChartElement.nextElementSibling;
-  const previousBlock = selectedChartElement.previousElementSibling;
-  const chartToRemove = selectedChartElement;
+  const nextBlock = activeChart.nextElementSibling;
+  const previousBlock = activeChart.previousElementSibling;
+  const chartToRemove = activeChart;
   clearSelectedChart();
   chartToRemove.remove();
 
@@ -1841,10 +1876,10 @@ function previewChartEditorChanges() {
   handleLiveEdit();
 }
 
-elements.pageList.addEventListener("click", (event) => {
+elements.pageList.addEventListener("click", async (event) => {
   const deleteButton = event.target.closest("[data-delete-page-id]");
   if (deleteButton) {
-    deletePageById(deleteButton.getAttribute("data-delete-page-id"));
+    await deletePageById(deleteButton.getAttribute("data-delete-page-id"));
     return;
   }
 
@@ -1853,6 +1888,7 @@ elements.pageList.addEventListener("click", (event) => {
     return;
   }
 
+  await saveActivePageDraft();
   state.activePageId = button.getAttribute("data-page-id");
   if (state.routeMode === "workspace-edit") {
     setRoute("workspace-edit", state.activePageId);
@@ -1876,15 +1912,46 @@ elements.pageRouteLink.addEventListener("click", async (event) => {
   setRoute("page", page.id);
 });
 
+elements.topEditRouteLink.addEventListener("click", async (event) => {
+  event.preventDefault();
+  const page = await saveActivePageDraft();
+  if (!page) {
+    return;
+  }
+
+  setRoute("workspace-edit", page.id);
+});
+
+elements.editRouteLink.addEventListener("click", async (event) => {
+  event.preventDefault();
+  const page = await saveActivePageDraft();
+  if (!page) {
+    return;
+  }
+
+  setRoute("workspace-edit", page.id);
+});
+
 elements.newPageButton.addEventListener("click", async () => {
+  await saveActivePageDraft();
   await createBlankPage();
 });
 
 elements.duplicatePageButton.addEventListener("click", async () => {
+  await saveActivePageDraft();
   await duplicateActivePage();
 });
 
+elements.deletePageButton.addEventListener("mousedown", (event) => {
+  if (currentSelectedChartElement()) {
+    event.preventDefault();
+  }
+});
+
 elements.deletePageButton.addEventListener("click", async () => {
+  if (deleteSelectedChart()) {
+    return;
+  }
   await deleteActivePage();
 });
 
@@ -2123,7 +2190,8 @@ document.addEventListener("pointerup", () => {
 elements.chartCancelButton.addEventListener("click", () => closeChartEditor({ revert: true }));
 elements.chartSaveButton.addEventListener("click", saveChartEditor);
 
-window.addEventListener("hashchange", () => {
+window.addEventListener("hashchange", async () => {
+  await saveActivePageDraft();
   applyRoute();
   renderAll();
 });

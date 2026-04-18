@@ -24,6 +24,7 @@ Q2,18
 Q3,9
 Q4,22`,
   color: "blue",
+  backgroundColor: "#FFFFFF",
   gradientStartColor: "blue",
   gradientEndColor: "teal",
   gradientStops: [
@@ -33,6 +34,7 @@ Q4,22`,
   axisInterval: 10,
   width: 480,
   height: 320,
+  leftPlotPadding: 0,
   barWidth: 48,
   barGap: 12,
   useGradient: true
@@ -49,6 +51,17 @@ const COLOR_OPTIONS = [
   { label: "Orange", value: "orange", hex: "#FF8B00", background: "color.background.accent.orange.bolder" },
   { label: "Purple", value: "purple", hex: "#6554C0", background: "color.background.accent.purple.bolder" },
   { label: "Teal", value: "teal", hex: "#00B8D9", background: "color.background.accent.teal.bolder" }
+];
+
+const BACKGROUND_COLOR_OPTIONS = [
+  { label: "White", value: "#FFFFFF", background: "color.background.neutral" },
+  { label: "Gray", value: "#F4F5F7", background: "color.background.neutral.subtle" },
+  { label: "Blue", value: "#E9F2FF", background: "color.background.accent.blue.subtlest" },
+  { label: "Green", value: "#E3FCEF", background: "color.background.accent.green.subtlest" },
+  { label: "Yellow", value: "#FFF7D6", background: "color.background.accent.yellow.subtlest" },
+  { label: "Pink", value: "#FFECF8", background: "color.background.accent.magenta.subtlest" },
+  { label: "Lavender", value: "#EEE6FF", background: "color.background.accent.purple.subtlest" },
+  { label: "Sand", value: "#FDF1DD", background: "color.background.accent.orange.subtlest" }
 ];
 
 const tileStyles = xcss({
@@ -142,6 +155,11 @@ const normalizeDimension = (rawValue, fallback, min, max) => {
 };
 
 const normalizeAxisInterval = (rawValue) => normalizeDimension(rawValue, DEFAULTS.axisInterval, 1, 100);
+
+const normalizeBackgroundColor = (rawValue) => {
+  const value = String(rawValue ?? "").trim();
+  return /^#([0-9a-fA-F]{6})$/.test(value) ? value.toUpperCase() : DEFAULTS.backgroundColor;
+};
 
 const normalizeGradientStops = (rawValue, fallbackStartColor, fallbackEndColor) => {
   if (!Array.isArray(rawValue)) {
@@ -258,6 +276,7 @@ const App = () => {
             title: String(existingConfig.title ?? DEFAULTS.title),
             data: String(existingConfig.data ?? DEFAULTS.data),
             color: normalizeColor(existingConfig.color),
+            backgroundColor: normalizeBackgroundColor(existingConfig.backgroundColor),
             gradientStartColor: normalizeColor(existingConfig.gradientStartColor ?? existingConfig.color ?? DEFAULTS.gradientStartColor),
             gradientEndColor: normalizeColor(existingConfig.gradientEndColor ?? existingConfig.color ?? DEFAULTS.gradientEndColor),
             gradientStops: normalizeGradientStops(
@@ -268,6 +287,7 @@ const App = () => {
             axisInterval: normalizeAxisInterval(existingConfig.axisInterval),
             width: normalizeDimension(existingConfig.width, DEFAULTS.width, 240, 900),
             height: normalizeDimension(existingConfig.height, DEFAULTS.height, 240, 700),
+            leftPlotPadding: normalizeDimension(existingConfig.leftPlotPadding, DEFAULTS.leftPlotPadding, 0, 120),
             barWidth: normalizeDimension(existingConfig.barWidth, DEFAULTS.barWidth, 12, 120),
             barGap: normalizeDimension(existingConfig.barGap, DEFAULTS.barGap, 0, 48),
             useGradient: true
@@ -379,12 +399,14 @@ const App = () => {
           title: String(config.title ?? "").trim() || DEFAULTS.title,
           data: String(config.data ?? "").trim() || DEFAULTS.data,
           color: normalizeColor(config.color),
+          backgroundColor: normalizeBackgroundColor(config.backgroundColor),
           gradientStartColor: gradientStops[0].color,
           gradientEndColor: gradientStops[gradientStops.length - 1].color,
           gradientStops,
           axisInterval: normalizeAxisInterval(config.axisInterval),
           width: normalizeDimension(config.width, DEFAULTS.width, 240, 900),
           height: normalizeDimension(config.height, DEFAULTS.height, 240, 700),
+          leftPlotPadding: normalizeDimension(config.leftPlotPadding, DEFAULTS.leftPlotPadding, 0, 120),
           barWidth: normalizeDimension(config.barWidth, DEFAULTS.barWidth, 12, 120),
           barGap: normalizeDimension(config.barGap, DEFAULTS.barGap, 0, 48),
           useGradient: true
@@ -429,6 +451,8 @@ const App = () => {
     axisInterval: normalizeAxisInterval(config.axisInterval),
     useGradient: true,
     color: selectedColor.value,
+    backgroundColor: normalizeBackgroundColor(config.backgroundColor),
+    leftPlotPadding: normalizeDimension(config.leftPlotPadding, DEFAULTS.leftPlotPadding, 0, 120),
     colorHex: selectedColor.hex,
     gradientStartColor: selectedGradientStartColor.value,
     gradientStartHex: selectedGradientStartColor.hex,
@@ -483,6 +507,19 @@ const App = () => {
                           onChange={updateTextField("axisInterval")}
                         />
                       </Box>
+                    </Inline>
+                    <Inline space="space.100" alignBlock="center">
+                      <Text>Background</Text>
+                    </Inline>
+                    <Inline space="space.0" shouldWrap>
+                      {BACKGROUND_COLOR_OPTIONS.map((option) => (
+                        <ColorTile
+                          key={`background-${option.value}`}
+                          option={option}
+                          selected={normalizeBackgroundColor(config.backgroundColor) === option.value}
+                          onSelect={updateField("backgroundColor")}
+                        />
+                      ))}
                     </Inline>
                   </Stack>
                 </Box>
@@ -632,6 +669,20 @@ const App = () => {
                           value={Number(config.barWidth)}
                           onChange={updateField("barWidth")}
                           min={12}
+                          max={120}
+                          step={2}
+                        />
+                      </Box>
+                    </Inline>
+
+                    <Inline space="space.050" alignBlock="center" xcss={sliderInlineStyles}>
+                      <Text>Left padding: {config.leftPlotPadding}px</Text>
+                      <Box xcss={sliderWrapStyles}>
+                        <Range
+                          name="leftPlotPadding"
+                          value={Number(config.leftPlotPadding)}
+                          onChange={updateField("leftPlotPadding")}
+                          min={0}
                           max={120}
                           step={2}
                         />

@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bar Chart 2 Config</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #ffffff;
+        --panel: #ffffff;
+        --border: #d0d4db;
+        --border-strong: #86b7fe;
+        --text: #172b4d;
+        --muted: #5e6c84;
+        --accent: #0c66e4;
+        --accent-soft: #deebff;
+        --shadow: 0 8px 28px rgba(9, 30, 66, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Arial, sans-serif;
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      body {
+        padding: 18px;
+        min-width: 0;
+        overflow-x: hidden;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: minmax(320px, 400px) minmax(360px, 1fr);
+        gap: 24px;
+        width: 100%;
+        min-height: 640px;
+        align-items: start;
+      }
+
+      .controls {
+        position: relative;
+        width: 100%;
+        background: transparent;
+      }
+
+      .preview {
+        position: sticky;
+        top: 0;
+        background: transparent;
+        border-left: 2px solid var(--border-strong);
+        padding: 0 0 0 24px;
+        min-height: 560px;
+        min-width: 0;
+      }
+
+      .title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+
+      .section {
+        margin-top: 12px;
+      }
+
+      .section-toggle {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        color: var(--text);
+      }
+
+      .section-body {
+        margin-top: 8px;
+        padding-left: 2px;
+      }
+
+      .field-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 8px;
+      }
+
+      .field-row label {
+        min-width: 110px;
+        color: var(--text);
+      }
+
+      .textarea {
+        width: 100%;
+        min-height: 110px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        resize: vertical;
+        background: #fff;
+      }
+
+      .range {
+        flex: 1;
+      }
+
+      .number {
+        width: 96px;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .swatch-button,
+      .stop-swatch {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        border: 1px solid rgba(9, 30, 66, 0.16);
+        cursor: pointer;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+      }
+
+      .swatch-button.selected {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .swatch-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .background-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .picker-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+      }
+
+      .picker-trigger span {
+        color: var(--muted);
+      }
+
+      .stops {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .stop-row {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fff;
+      }
+
+      .stop-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .stop-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .stop-label {
+        font-weight: 700;
+      }
+
+      .subtle-btn,
+      .primary-btn {
+        border-radius: 8px;
+        padding: 7px 12px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .primary-btn {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .footer {
+        margin-top: 18px;
+        display: flex;
+        gap: 14px;
+      }
+
+      .action-btn {
+        min-width: 96px;
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+      }
+
+      .status {
+        margin-top: 12px;
+        color: var(--muted);
+      }
+
+      .status.error {
+        color: #ae2e24;
+      }
+
+      .preview svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      #preview-root {
+        width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(9, 30, 66, 0.34);
+        padding: 20px;
+      }
+
+      .modal-backdrop.open {
+        display: flex;
+      }
+
+      .modal {
+        width: min(760px, 100%);
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .modal-foot {
+        padding: 16px 18px;
+      }
+
+      .modal-foot {
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      .modal-body {
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 22px;
+      }
+
+      .picker-preview {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px;
+        background: #fafbfc;
+      }
+
+      .picker-preview-swatch {
+        width: 100%;
+        height: 120px;
+        border-radius: 10px;
+        border: 1px solid rgba(9, 30, 66, 0.12);
+      }
+
+      .picker-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .custom-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .color-input {
+        width: 52px;
+        height: 40px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 2px;
+        background: #fff;
+      }
+
+      .hex-input {
+        width: 120px;
+        padding: 9px 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+      }
+      .live-title {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      @media (max-width: 720px) {
+        .modal-body {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 1080px) {
+        body {
+          overflow-x: auto;
+        }
+
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .preview {
+          position: relative;
+          top: auto;
+          border-left: 0;
+          border-top: 2px solid var(--border-strong);
+          padding: 20px 0 0;
+          min-height: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell" data-layout="two-column">
+      <div class="controls">
+        <div class="title">Bar chart configuration</div>
+
+        <div class="section">
+          <button class="section-toggle" type="button" data-toggle="series">
+            <span>Series</span>
+            <span id="series-toggle-text">+</span>
+          </button>
+          <div class="section-body" id="series-body" hidden>
+            <textarea class="textarea" id="series-data" placeholder="Q1,12&#10;Q2,18&#10;Q3,9"></textarea>
+
+            <div class="field-row">
+              <label for="axis-interval">Axis interval</label>
+              <input class="number" id="axis-interval" type="number" min="1" max="100" />
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <button class="section-toggle" type="button" data-toggle="background">
+            <span>Background</span>
+            <span id="background-toggle-text">+</span>
+          </button>
+          <div class="section-body" id="background-body" hidden>
+            <div class="field-row" id="background-custom-row">
+              <label for="background-color-input">Canvas color</label>
+              <input class="color-input" id="background-color-input" type="color" value="#FFFFFF" />
+              <input class="hex-input" id="background-hex-input" type="text" value="#FFFFFF" />
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <button class="section-toggle" type="button" data-toggle="gradient">
+            <span>Gradient</span>
+            <span id="gradient-toggle-text">-</span>
+          </button>
+          <div class="section-body" id="gradient-body">
+            <div class="field-row">
+              <label></label>
+              <button class="subtle-btn" id="add-stop" type="button">Add stop</button>
+            </div>
+            <div class="stops" id="gradient-stops"></div>
+            <div class="field-row" id="gradient-custom-row">
+              <label for="gradient-custom-color-input">Stop color</label>
+              <input class="color-input" id="gradient-custom-color-input" type="color" value="#0052CC" />
+              <input class="hex-input" id="gradient-custom-hex-input" type="text" value="#0052CC" />
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <button class="section-toggle" type="button" data-toggle="sizing">
+            <span>Sizing</span>
+            <span id="sizing-toggle-text">+</span>
+          </button>
+          <div class="section-body" id="sizing-body" hidden>
+            <div class="field-row">
+              <label for="width-range">Chart width</label>
+              <input class="range" id="width-range" type="range" min="240" max="900" step="10" />
+              <input class="number" id="width-number" type="number" min="240" max="900" />
+            </div>
+            <div class="field-row">
+              <label for="height-range">Chart height</label>
+              <input class="range" id="height-range" type="range" min="240" max="700" step="10" />
+              <input class="number" id="height-number" type="number" min="240" max="700" />
+            </div>
+            <div class="field-row">
+              <label for="left-padding-range">Left padding</label>
+              <input class="range" id="left-padding-range" type="range" min="0" max="120" step="2" />
+              <input class="number" id="left-padding-number" type="number" min="0" max="120" />
+            </div>
+            <div class="field-row">
+              <label for="bar-width-range">Bar width</label>
+              <input class="range" id="bar-width-range" type="range" min="12" max="120" step="2" />
+              <input class="number" id="bar-width-number" type="number" min="12" max="120" />
+            </div>
+            <div class="field-row">
+              <label for="bar-gap-range">Bar spacing</label>
+              <input class="range" id="bar-gap-range" type="range" min="0" max="48" step="1" />
+              <input class="number" id="bar-gap-number" type="number" min="0" max="48" />
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <button class="action-btn" id="save-button" type="button">Save</button>
+          <button class="action-btn" id="cancel-button" type="button">Cancel</button>
+        </div>
+
+        <div class="status" id="status"></div>
+      </div>
+
+      <div class="preview" data-preview-column>
+        <div class="live-title">Live preview</div>
+        <div class="field-row" id="preview-size-row">
+          <label for="preview-size-range">Preview size</label>
+          <input class="range" id="preview-size-range" type="range" min="20" max="100" step="5" />
+          <input class="number" id="preview-size-number" type="number" min="20" max="100" step="5" />
+        </div>
+        <div id="preview-root"></div>
+      </div>
+    </div>
+
+      <div class="modal-backdrop" id="picker-backdrop">
+      <div class="modal">
+        <div class="modal-body">
+          <div class="picker-grid">
+            <div class="custom-row">
+              <input class="color-input" id="custom-color-input" type="color" value="#0052CC" />
+              <input class="hex-input" id="custom-hex-input" type="text" value="#0052CC" />
+            </div>
+          </div>
+          <div class="picker-preview">
+            <div class="picker-preview-swatch" id="picker-preview-swatch"></div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="subtle-btn" id="picker-cancel" type="button">Cancel</button>
+          <button class="primary-btn" id="picker-apply" type="button">Apply</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        const DEFAULTS = {
+          title: "Quarterly sales",
+          data: "Q1,12\nQ2,18\nQ3,9\nQ4,22",
+          color: "blue",
+          backgroundColor: "#FFFFFF",
+          gradientStartColor: "blue",
+          gradientEndColor: "teal",
+          gradientStops: [
+            { color: "blue", offset: 0 },
+            { color: "teal", offset: 100 }
+          ],
+          axisInterval: 10,
+          width: 480,
+          height: 320,
+          leftPlotPadding: 0,
+          barWidth: 48,
+          barGap: 12,
+          useGradient: true
+        };
+
+        const COLOR_OPTIONS = [
+          { label: "Blue", value: "blue", hex: "#0052CC" },
+          { label: "Green", value: "green", hex: "#36B37E" },
+          { label: "Red", value: "red", hex: "#DE350B" },
+          { label: "Orange", value: "orange", hex: "#FF8B00" },
+          { label: "Purple", value: "purple", hex: "#6554C0" },
+          { label: "Teal", value: "teal", hex: "#00B8D9" }
+        ];
+
+        const BACKGROUND_COLOR_OPTIONS = [
+          { label: "White", value: "#FFFFFF" },
+          { label: "Gray", value: "#F4F5F7" },
+          { label: "Blue", value: "#E9F2FF" },
+          { label: "Green", value: "#E3FCEF" },
+          { label: "Yellow", value: "#FFF7D6" },
+          { label: "Pink", value: "#FFECF8" },
+          { label: "Lavender", value: "#EEE6FF" },
+          { label: "Sand", value: "#FDF1DD" }
+        ];
+
+        let state = { ...DEFAULTS };
+        let pickerState = null;
+        let previewScale = 30;
+        let selectedGradientStopIndex = 0;
+
+        const qs = (selector) => document.querySelector(selector);
+        const previewRoot = qs("#preview-root");
+        const statusEl = qs("#status");
+        const shellEl = qs(".shell");
+        const controlsEl = qs(".controls");
+        const previewEl = qs(".preview");
+        const pickerBackdropEl = qs("#picker-backdrop");
+        const pickerModalEl = qs(".modal");
+        const previewSizeRangeEl = qs("#preview-size-range");
+        const previewSizeNumberEl = qs("#preview-size-number");
+        const backgroundColorInputEl = qs("#background-color-input");
+        const backgroundHexInputEl = qs("#background-hex-input");
+        const gradientCustomColorInputEl = qs("#gradient-custom-color-input");
+        const gradientCustomHexInputEl = qs("#gradient-custom-hex-input");
+
+        const setStyles = (element, styles) => {
+          if (!element) {
+            return;
+          }
+
+          Object.entries(styles).forEach(([property, value]) => {
+            element.style[property] = value;
+          });
+        };
+
+        const applyRuntimeStyles = () => {
+          const isSingleColumn = window.innerWidth <= 1080;
+          const previewMaxWidth = isSingleColumn ? "100%" : `${Math.round((980 * previewScale) / 100)}px`;
+
+          setStyles(document.body, {
+            margin: "0",
+            padding: "18px",
+            background: "#ffffff",
+            color: "#172b4d",
+            fontFamily: "Arial, sans-serif",
+            overflowX: isSingleColumn ? "auto" : "hidden"
+          });
+
+          setStyles(shellEl, {
+            display: "grid",
+            gridTemplateColumns: isSingleColumn ? "1fr" : "minmax(360px, 460px) minmax(520px, 1fr)",
+            gap: isSingleColumn ? "24px" : "32px",
+            width: "100%",
+            minHeight: "640px",
+            alignItems: "start"
+          });
+
+          setStyles(controlsEl, {
+            width: "100%",
+            minWidth: "360px",
+            maxWidth: isSingleColumn ? "none" : "460px",
+            paddingRight: isSingleColumn ? "0" : "8px"
+          });
+
+          setStyles(previewEl, {
+            width: "100%",
+            minWidth: "0",
+            position: isSingleColumn ? "relative" : "sticky",
+            top: isSingleColumn ? "auto" : "0",
+            padding: isSingleColumn ? "20px 0 0" : "0 0 0 28px",
+            borderLeft: isSingleColumn ? "0" : "2px solid #C1C7D0",
+            borderTop: isSingleColumn ? "2px solid #C1C7D0" : "0",
+            minHeight: isSingleColumn ? "0" : "560px",
+            alignSelf: "start",
+            background: "transparent"
+          });
+
+          setStyles(pickerBackdropEl, {
+            position: "fixed",
+            inset: "0",
+            display: pickerBackdropEl.classList.contains("open") ? "flex" : "none",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(9, 30, 66, 0.34)",
+            padding: "20px"
+          });
+
+          setStyles(pickerModalEl, {
+            width: "min(760px, 100%)",
+            background: "#fff",
+            borderRadius: "12px",
+            boxShadow: "0 8px 28px rgba(9, 30, 66, 0.16)",
+            overflow: "hidden"
+          });
+
+          setStyles(previewRoot, {
+            width: "100%",
+            minWidth: "0",
+            maxWidth: previewMaxWidth,
+            overflowX: "auto",
+            marginLeft: "0",
+            marginRight: isSingleColumn ? "0" : "auto"
+          });
+
+          document.querySelectorAll("button, input, textarea").forEach((element) => {
+            element.style.fontFamily = "Arial, sans-serif";
+            element.style.fontSize = "14px";
+          });
+
+          document.querySelectorAll(".title").forEach((element) =>
+            setStyles(element, {
+              fontSize: "16px",
+              fontWeight: "700",
+              marginBottom: "12px"
+            })
+          );
+
+          document.querySelectorAll(".section").forEach((element) =>
+            setStyles(element, {
+              marginTop: "12px"
+            })
+          );
+
+          document.querySelectorAll(".section-toggle").forEach((element) =>
+            setStyles(element, {
+              display: "inline-flex",
+              gap: "6px",
+              alignItems: "center",
+              background: "transparent",
+              border: "0",
+              padding: "0",
+              cursor: "pointer",
+              color: "#172b4d"
+            })
+          );
+
+          document.querySelectorAll(".section-body").forEach((element) =>
+            setStyles(element, {
+              marginTop: "8px",
+              paddingLeft: "2px"
+            })
+          );
+
+          document.querySelectorAll(".field-row").forEach((element) =>
+            setStyles(element, {
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              marginTop: "8px"
+            })
+          );
+
+          document.querySelectorAll(".field-row label").forEach((element) =>
+            setStyles(element, {
+              minWidth: "110px",
+              color: "#172b4d"
+            })
+          );
+
+          document.querySelectorAll(".textarea").forEach((element) =>
+            setStyles(element, {
+              width: "100%",
+              minHeight: "110px",
+              padding: "10px 12px",
+              border: "1px solid #d0d4db",
+              borderRadius: "8px",
+              resize: "vertical",
+              background: "#fff"
+            })
+          );
+
+          document.querySelectorAll(".number").forEach((element) =>
+            setStyles(element, {
+              width: "96px",
+              padding: "8px 10px",
+              border: "1px solid #d0d4db",
+              borderRadius: "8px",
+              background: "#fff"
+            })
+          );
+
+          document.querySelectorAll(".color-input").forEach((element) =>
+            setStyles(element, {
+              width: "52px",
+              height: "40px",
+              border: "1px solid #d0d4db",
+              borderRadius: "8px",
+              padding: "2px",
+              background: "#fff"
+            })
+          );
+
+          document.querySelectorAll(".hex-input").forEach((element) =>
+            setStyles(element, {
+              width: "120px",
+              padding: "9px 10px",
+              border: "1px solid #d0d4db",
+              borderRadius: "8px",
+              background: "#fff"
+            })
+          );
+
+          document.querySelectorAll(".range").forEach((element) =>
+            setStyles(element, {
+              flex: "1"
+            })
+          );
+
+          document.querySelectorAll(".swatch-row").forEach((element) =>
+            setStyles(element, {
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "8px"
+            })
+          );
+
+          document.querySelectorAll(".swatch-button, .stop-swatch").forEach((element) =>
+            setStyles(element, {
+              width: "24px",
+              height: "24px",
+              borderRadius: "6px",
+              border: "1px solid rgba(9, 30, 66, 0.16)",
+              cursor: "pointer",
+              boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.35)"
+            })
+          );
+
+          document.querySelectorAll(".stop-row").forEach((element) =>
+            setStyles(element, {
+              borderWidth: "1px",
+              borderStyle: "solid",
+              borderRadius: "8px",
+              padding: "10px",
+              background: "#fff"
+            })
+          );
+
+          document.querySelectorAll(".stop-head").forEach((element) =>
+            setStyles(element, {
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "12px"
+            })
+          );
+
+          document.querySelectorAll(".stop-actions").forEach((element) =>
+            setStyles(element, {
+              display: "flex",
+              alignItems: "center",
+              gap: "10px"
+            })
+          );
+
+          document.querySelectorAll(".footer").forEach((element) =>
+            setStyles(element, {
+              marginTop: "18px",
+              display: "flex",
+              gap: "14px"
+            })
+          );
+
+          document.querySelectorAll(".action-btn, .subtle-btn, .primary-btn").forEach((element) =>
+            setStyles(element, {
+              borderRadius: "8px",
+              padding: "8px 14px",
+              border: "1px solid #d0d4db",
+              background: "#fff",
+              color: "#172b4d",
+              cursor: "pointer"
+            })
+          );
+
+          document.querySelectorAll(".primary-btn").forEach((element) =>
+            setStyles(element, {
+              borderColor: "#0c66e4",
+              background: "#deebff",
+              color: "#0c66e4"
+            })
+          );
+
+          document.querySelectorAll(".live-title").forEach((element) =>
+            setStyles(element, {
+              fontSize: "14px",
+              fontWeight: "700",
+              marginBottom: "14px"
+            })
+          );
+
+          document.querySelectorAll(".preview svg").forEach((element) =>
+            setStyles(element, {
+              display: "block",
+              width: "100%",
+              maxWidth: previewMaxWidth,
+              height: "auto"
+            })
+          );
+        };
+
+        const isHexColor = (value) => /^#([0-9A-F]{6})$/.test(String(value ?? "").trim().toUpperCase());
+
+        const callBridge = (name, payload) => {
+          if (!window.__bridge || typeof window.__bridge.callBridge !== "function") {
+            throw new Error("Forge bridge unavailable");
+          }
+
+          return window.__bridge.callBridge(name, payload);
+        };
+
+        const normalizeColor = (rawValue) => {
+          const value = String(rawValue ?? "").trim();
+          return COLOR_OPTIONS.some((option) => option.value === value) ? value : DEFAULTS.color;
+        };
+
+        const normalizeGradientColor = (rawValue, fallback = DEFAULTS.color) => {
+          const value = String(rawValue ?? "").trim();
+          if (COLOR_OPTIONS.some((option) => option.value === value)) {
+            return value;
+          }
+
+          return isHexColor(value) ? value.toUpperCase() : fallback;
+        };
+
+        const normalizeDimension = (rawValue, fallback, min, max) => {
+          const value = Number(rawValue);
+          if (!Number.isFinite(value)) {
+            return fallback;
+          }
+
+          return Math.min(Math.max(value, min), max);
+        };
+
+        const normalizeBackgroundColor = (rawValue) => {
+          const value = String(rawValue ?? "").trim().toUpperCase();
+          return /^#([0-9A-F]{6})$/.test(value) ? value : DEFAULTS.backgroundColor;
+        };
+
+        const normalizeGradientStops = (rawValue, fallbackStartColor, fallbackEndColor) => {
+          if (!Array.isArray(rawValue)) {
+            return [
+              { color: normalizeGradientColor(fallbackStartColor), offset: 0 },
+              { color: normalizeGradientColor(fallbackEndColor), offset: 100 }
+            ];
+          }
+
+          const normalized = rawValue
+            .map((stop, index) => ({
+              color: normalizeGradientColor(stop?.color, index === 0 ? normalizeGradientColor(fallbackStartColor) : normalizeGradientColor(fallbackEndColor)),
+              offset: normalizeDimension(stop?.offset, index === 0 ? 0 : 100, 0, 100)
+            }))
+            .sort((left, right) => left.offset - right.offset);
+
+          return normalized.length >= 2
+            ? normalized
+            : [
+                { color: normalizeGradientColor(fallbackStartColor), offset: 0 },
+                { color: normalizeGradientColor(fallbackEndColor), offset: 100 }
+              ];
+        };
+
+        const normalizeConfig = (raw) => {
+          const color = normalizeColor(raw.color);
+          const gradientStops = normalizeGradientStops(
+            raw.gradientStops,
+            raw.gradientStartColor ?? color,
+            raw.gradientEndColor ?? color
+          );
+
+          return {
+            title: String(raw.title ?? "").trim() || DEFAULTS.title,
+            data: String(raw.data ?? "").trim() || DEFAULTS.data,
+            color,
+            backgroundColor: normalizeBackgroundColor(raw.backgroundColor),
+            gradientStartColor: gradientStops[0].color,
+            gradientEndColor: gradientStops[gradientStops.length - 1].color,
+            gradientStops,
+            axisInterval: normalizeDimension(raw.axisInterval, DEFAULTS.axisInterval, 1, 100),
+            width: normalizeDimension(raw.width, DEFAULTS.width, 240, 900),
+            height: normalizeDimension(raw.height, DEFAULTS.height, 240, 700),
+            leftPlotPadding: normalizeDimension(raw.leftPlotPadding, DEFAULTS.leftPlotPadding, 0, 120),
+            barWidth: normalizeDimension(raw.barWidth, DEFAULTS.barWidth, 12, 120),
+            barGap: normalizeDimension(raw.barGap, DEFAULTS.barGap, 0, 48),
+            useGradient: true
+          };
+        };
+
+        const parseRows = (rawValue) =>
+          String(rawValue ?? "")
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line, index) => {
+              const parts = line.split(",");
+              const label = parts[0] ? parts[0].trim() : "";
+              const value = parts[1] ? Number(parts[1].trim()) : NaN;
+
+              if (!label || !Number.isFinite(value)) {
+                throw new Error("Line " + (index + 1) + " must look like Label,Value");
+              }
+
+              return { label, value };
+            });
+
+        const escapeXml = (value) =>
+          String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&apos;");
+
+        const resolveStopHex = (stop) => (isHexColor(stop?.color) ? stop.color : (COLOR_OPTIONS.find((option) => option.value === stop.color) || COLOR_OPTIONS[0]).hex);
+
+        const buildSvg = (payload) => {
+          const rows = parseRows(payload.data);
+          const rawMaxValue = Math.max(...rows.map((row) => row.value), 1);
+          const maxValue = Math.max(rawMaxValue, payload.axisInterval);
+          const titleHeight = 0;
+          const valueLabelHeight = 22;
+          const plotTop = titleHeight + valueLabelHeight;
+          const plotHeight = payload.height;
+          const axisGap = 8;
+          const labelRowHeight = 24;
+          const leftPad = 36;
+          const rightPad = 12;
+          const axisY = plotTop + plotHeight;
+          const labelY = axisY + 18;
+          const innerWidth = payload.leftPlotPadding + rows.length * payload.barWidth + Math.max(0, rows.length - 1) * payload.barGap;
+          const svgWidth = Math.max(payload.width, leftPad + innerWidth + rightPad);
+          const svgHeight = axisY + axisGap + labelRowHeight;
+          const plotRight = svgWidth - rightPad;
+          const guides = Array.from(
+            { length: Math.floor(rawMaxValue / payload.axisInterval) },
+            (_, index) => (index + 1) * payload.axisInterval
+          );
+          const dividerX =
+            rows.length === 2 ? leftPad + payload.leftPlotPadding + payload.barWidth + payload.barGap / 2 : null;
+
+          const defs =
+            "<defs>" +
+            rows
+              .map(
+                (_, index) =>
+                  '<linearGradient id="bar-gradient-' +
+                  index +
+                  '" x1="0" y1="0" x2="0" y2="1">' +
+                  payload.gradientStops
+                    .map(
+                      (stop) =>
+                        '<stop offset="' +
+                        stop.offset +
+                        '%" stop-color="' +
+                        resolveStopHex(stop) +
+                        '" stop-opacity="1"/>'
+                    )
+                    .join("") +
+                  "</linearGradient>"
+              )
+              .join("") +
+            "</defs>";
+
+          const guideMarkup = guides
+            .map((guide) => {
+              const y = plotTop + plotHeight - (guide / maxValue) * plotHeight;
+              return '<line x1="' + leftPad + '" y1="' + y + '" x2="' + plotRight + '" y2="' + y + '" stroke="#8590A2" stroke-width="1" />';
+            })
+            .join("");
+
+          const yLabels = guides
+            .map((guide) => {
+              const y = plotTop + plotHeight - (guide / maxValue) * plotHeight;
+              return '<text x="' + (leftPad - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="12" fill="#44546F">' + guide + "</text>";
+            })
+            .join("");
+
+          const dividerMarkup =
+            dividerX === null
+              ? ""
+              : '<line x1="' +
+                dividerX +
+                '" y1="' +
+                plotTop +
+                '" x2="' +
+                dividerX +
+                '" y2="' +
+                axisY +
+                '" stroke="#C1C7D0" stroke-width="1" />';
+
+          const bars = rows
+            .map((row, index) => {
+              const x = leftPad + payload.leftPlotPadding + index * (payload.barWidth + payload.barGap);
+              const barHeight = Math.max(8, Math.round((row.value / maxValue) * plotHeight));
+              const y = axisY - barHeight;
+
+              return [
+                '<text x="' + (x + payload.barWidth / 2) + '" y="' + (plotTop - 6) + '" text-anchor="middle" font-size="12" fill="#172B4D">' + escapeXml(row.value) + "</text>",
+                '<rect x="' + x + '" y="' + y + '" width="' + payload.barWidth + '" height="' + barHeight + '" rx="4" ry="4" fill="url(#bar-gradient-' + index + ')" />',
+                '<text x="' + (x + payload.barWidth / 2) + '" y="' + labelY + '" text-anchor="middle" font-size="12" fill="#172B4D">' + escapeXml(row.label) + "</text>"
+              ].join("");
+            })
+            .join("");
+
+          return (
+            '<svg xmlns="http://www.w3.org/2000/svg" width="' +
+            svgWidth +
+            '" height="' +
+            svgHeight +
+            '" viewBox="0 0 ' +
+            svgWidth +
+            " " +
+            svgHeight +
+            '">' +
+            defs +
+            '<rect x="0" y="0" width="' +
+            svgWidth +
+            '" height="' +
+            svgHeight +
+            '" fill="' +
+            payload.backgroundColor +
+            '" />' +
+            guideMarkup +
+            '<line x1="' + leftPad + '" y1="' + plotTop + '" x2="' + leftPad + '" y2="' + axisY + '" stroke="#172B4D" stroke-width="2" />' +
+            '<line x1="' + leftPad + '" y1="' + axisY + '" x2="' + plotRight + '" y2="' + axisY + '" stroke="#172B4D" stroke-width="2" />' +
+            yLabels +
+            dividerMarkup +
+            bars +
+            "</svg>"
+          );
+        };
+
+        const setStatus = (message, isError = false) => {
+          statusEl.textContent = message || "";
+          statusEl.className = "status" + (isError ? " error" : "");
+        };
+
+        const renderPreview = () => {
+          try {
+            previewRoot.innerHTML = buildSvg(normalizeConfig(state));
+            applyRuntimeStyles();
+            setStatus("");
+          } catch (error) {
+            previewRoot.innerHTML = "";
+            setStatus(error instanceof Error ? error.message : "Unable to build preview.", true);
+          }
+        };
+
+        const syncPreviewScaleControls = () => {
+          previewSizeRangeEl.value = String(previewScale);
+          previewSizeNumberEl.value = String(previewScale);
+        };
+
+        const updatePreviewScale = (rawValue) => {
+          previewScale = normalizeDimension(rawValue, previewScale, 20, 100);
+          syncPreviewScaleControls();
+          applyRuntimeStyles();
+        };
+
+        const bindRangePair = (rangeId, numberId, field, min, max) => {
+          const range = qs("#" + rangeId);
+          const number = qs("#" + numberId);
+
+          const apply = (rawValue) => {
+            const value = normalizeDimension(rawValue, state[field], min, max);
+            state[field] = value;
+            range.value = String(value);
+            number.value = String(value);
+            renderPreview();
+          };
+
+          range.addEventListener("input", (event) => apply(event.target.value));
+          number.addEventListener("input", (event) => apply(event.target.value));
+        };
+
+        const syncBackgroundControls = () => {
+          const color = normalizeBackgroundColor(state.backgroundColor);
+          backgroundColorInputEl.value = color;
+          backgroundHexInputEl.value = color;
+        };
+
+        const updateBackgroundColor = (rawValue) => {
+          const nextColor = normalizeBackgroundColor(rawValue);
+          state.backgroundColor = nextColor;
+          renderAll();
+        };
+
+        const renderStops = () => {
+          const container = qs("#gradient-stops");
+          container.innerHTML = "";
+
+          normalizeConfig(state).gradientStops.forEach((stop, index) => {
+            const row = document.createElement("div");
+            row.className = "stop-row";
+            row.style.borderColor = index === selectedGradientStopIndex ? "#0c66e4" : "#d0d4db";
+            row.innerHTML =
+              '<div class="stop-head">' +
+              '<div class="stop-label">Stop ' + (index + 1) + "</div>" +
+              '<div class="stop-actions">' +
+              '<span class="stop-swatch" style="background:' + resolveStopHex(stop) + '"></span>' +
+              (state.gradientStops.length > 2 ? '<button class="subtle-btn" type="button" data-remove-stop="' + index + '">Remove</button>' : "") +
+              "</div></div>" +
+              '<div class="swatch-row" data-stop-swatches="' + index + '"></div>' +
+              '<div class="field-row">' +
+              "<label>Position</label>" +
+              '<input class="range" type="range" min="0" max="100" step="1" value="' + stop.offset + '" data-stop-range="' + index + '">' +
+              '<input class="number" type="number" min="0" max="100" value="' + stop.offset + '" data-stop-number="' + index + '">' +
+              "</div>";
+            container.appendChild(row);
+          });
+
+          container.querySelectorAll("[data-stop-swatches]").forEach((swatchRow) => {
+            const stopIndex = Number(swatchRow.dataset.stopSwatches);
+            COLOR_OPTIONS.forEach((option) => {
+              const button = document.createElement("button");
+              button.type = "button";
+                              button.className = "swatch-button" + (state.gradientStops[stopIndex].color === option.value ? " selected" : "");
+              button.style.background = option.hex;
+              button.setAttribute("aria-label", option.label);
+              button.addEventListener("click", () => {
+                selectedGradientStopIndex = stopIndex;
+                state.gradientStops[stopIndex].color = option.value;
+                renderAll();
+              });
+              swatchRow.appendChild(button);
+            });
+          });
+
+          container.querySelectorAll("[data-remove-stop]").forEach((button) => {
+            button.addEventListener("click", () => {
+              if (state.gradientStops.length > 2) {
+                const removedIndex = Number(button.dataset.removeStop);
+                state.gradientStops.splice(removedIndex, 1);
+                selectedGradientStopIndex = Math.max(0, Math.min(selectedGradientStopIndex, state.gradientStops.length - 1));
+                renderAll();
+              }
+            });
+          });
+
+          container.querySelectorAll("[data-stop-range]").forEach((input) => {
+            input.addEventListener("input", () => {
+              state.gradientStops[Number(input.dataset.stopRange)].offset = normalizeDimension(input.value, 0, 0, 100);
+              renderAll();
+            });
+          });
+
+          container.querySelectorAll("[data-stop-number]").forEach((input) => {
+            input.addEventListener("input", () => {
+              state.gradientStops[Number(input.dataset.stopNumber)].offset = normalizeDimension(input.value, 0, 0, 100);
+              renderAll();
+            });
+          });
+
+          Array.from(container.children).forEach((row, index) => {
+            row.addEventListener("click", () => {
+              selectedGradientStopIndex = index;
+              syncGradientCustomControls();
+              renderStops();
+            });
+          });
+        };
+
+        const syncGradientCustomControls = () => {
+          const stops = normalizeConfig(state).gradientStops;
+          selectedGradientStopIndex = Math.max(0, Math.min(selectedGradientStopIndex, stops.length - 1));
+          const selectedStop = stops[selectedGradientStopIndex] || stops[0];
+          const hex = resolveStopHex(selectedStop);
+          gradientCustomColorInputEl.value = hex;
+          gradientCustomHexInputEl.value = hex;
+        };
+
+        const updateSelectedGradientStopColor = (rawValue) => {
+          const nextColor = normalizeGradientColor(rawValue, state.gradientStops[selectedGradientStopIndex]?.color ?? DEFAULTS.gradientStartColor);
+          if (!isHexColor(nextColor)) {
+            syncGradientCustomControls();
+            return;
+          }
+
+          state.gradientStops[selectedGradientStopIndex].color = nextColor;
+          renderAll();
+        };
+
+        const setPickerValue = (hex) => {
+          if (!pickerState) {
+            return;
+          }
+          pickerState.value = normalizeBackgroundColor(hex);
+          qs("#picker-preview-swatch").style.background = pickerState.value;
+          qs("#custom-color-input").value = pickerState.value;
+          qs("#custom-hex-input").value = pickerState.value;
+        };
+
+        const openPicker = (title, initialValue, onApply) => {
+          pickerState = {
+            title,
+            value: normalizeBackgroundColor(initialValue),
+            onApply
+          };
+          qs("#picker-backdrop").classList.add("open");
+          applyRuntimeStyles();
+          setPickerValue(pickerState.value);
+        };
+
+        const closePicker = () => {
+          pickerState = null;
+          qs("#picker-backdrop").classList.remove("open");
+          applyRuntimeStyles();
+        };
+
+        const renderAll = () => {
+          state = normalizeConfig(state);
+          qs("#series-data").value = state.data;
+          qs("#axis-interval").value = String(state.axisInterval);
+          syncBackgroundControls();
+          renderStops();
+          syncGradientCustomControls();
+          syncPreviewScaleControls();
+          renderPreview();
+          qs("#width-range").value = String(state.width);
+          qs("#width-number").value = String(state.width);
+          qs("#height-range").value = String(state.height);
+          qs("#height-number").value = String(state.height);
+          qs("#left-padding-range").value = String(state.leftPlotPadding);
+          qs("#left-padding-number").value = String(state.leftPlotPadding);
+          qs("#bar-width-range").value = String(state.barWidth);
+          qs("#bar-width-number").value = String(state.barWidth);
+          qs("#bar-gap-range").value = String(state.barGap);
+          qs("#bar-gap-number").value = String(state.barGap);
+        };
+
+        const initToggles = () => {
+          ["series", "background", "gradient", "sizing"].forEach((name) => {
+            qs('[data-toggle="' + name + '"]').addEventListener("click", () => {
+              const body = qs("#" + name + "-body");
+              const icon = qs("#" + name + "-toggle-text");
+              body.hidden = !body.hidden;
+              icon.textContent = body.hidden ? "+" : "−";
+            });
+          });
+        };
+
+        const initEvents = () => {
+          qs("#series-data").addEventListener("input", (event) => {
+            state.data = event.target.value;
+            renderPreview();
+          });
+
+          qs("#axis-interval").addEventListener("input", (event) => {
+            state.axisInterval = normalizeDimension(event.target.value, state.axisInterval, 1, 100);
+            renderPreview();
+          });
+
+          backgroundColorInputEl.addEventListener("input", (event) => updateBackgroundColor(event.target.value));
+          backgroundHexInputEl.addEventListener("input", (event) => updateBackgroundColor(event.target.value));
+
+          qs("#add-stop").addEventListener("click", () => {
+            if (state.gradientStops.length >= 5) {
+              return;
+            }
+            const last = state.gradientStops[state.gradientStops.length - 1];
+            state.gradientStops.push({
+              color: last.color,
+              offset: Math.min(100, Math.round((last.offset + 100) / 2))
+            });
+            selectedGradientStopIndex = state.gradientStops.length - 1;
+            renderAll();
+          });
+
+          previewSizeRangeEl.addEventListener("input", (event) => updatePreviewScale(event.target.value));
+          previewSizeNumberEl.addEventListener("input", (event) => updatePreviewScale(event.target.value));
+
+          gradientCustomColorInputEl.addEventListener("input", (event) => updateSelectedGradientStopColor(event.target.value));
+          gradientCustomHexInputEl.addEventListener("input", (event) => updateSelectedGradientStopColor(event.target.value));
+
+          bindRangePair("width-range", "width-number", "width", 240, 900);
+          bindRangePair("height-range", "height-number", "height", 240, 700);
+          bindRangePair("left-padding-range", "left-padding-number", "leftPlotPadding", 0, 120);
+          bindRangePair("bar-width-range", "bar-width-number", "barWidth", 12, 120);
+          bindRangePair("bar-gap-range", "bar-gap-number", "barGap", 0, 48);
+
+          qs("#custom-color-input").addEventListener("input", (event) => setPickerValue(event.target.value));
+          qs("#custom-hex-input").addEventListener("input", (event) => setPickerValue(event.target.value));
+          qs("#picker-cancel").addEventListener("click", closePicker);
+          qs("#picker-apply").addEventListener("click", () => {
+            if (!pickerState) {
+              return;
+            }
+            pickerState.onApply(pickerState.value);
+            closePicker();
+          });
+
+          qs("#cancel-button").addEventListener("click", async () => {
+            try {
+              await callBridge("close");
+            } catch (error) {
+              setStatus(error instanceof Error ? error.message : "Unable to close configuration.", true);
+            }
+          });
+
+          qs("#save-button").addEventListener("click", async () => {
+            try {
+              await callBridge("submit", { config: normalizeConfig(state) });
+            } catch (error) {
+              setStatus(error instanceof Error ? error.message : "Unable to save configuration.", true);
+            }
+          });
+        };
+
+        const load = async () => {
+          applyRuntimeStyles();
+          window.addEventListener("resize", applyRuntimeStyles);
+          initToggles();
+          initEvents();
+
+          try {
+            const context = await callBridge("getContext");
+            state = normalizeConfig(context?.extension?.config || DEFAULTS);
+            renderAll();
+          } catch (error) {
+            state = normalizeConfig(DEFAULTS);
+            renderAll();
+            setStatus(error instanceof Error ? error.message : "Unable to load configuration.", true);
+          }
+        };
+
+        load();
+      })();
+    </script>
+  </body>
+</html>

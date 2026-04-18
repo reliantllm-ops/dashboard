@@ -41,6 +41,7 @@
           title: "Quarterly sales",
           data: "Q1,12\nQ2,18\nQ3,9\nQ4,22",
           color: "blue",
+          backgroundColor: "#FFFFFF",
           gradientStartColor: "blue",
           gradientEndColor: "teal",
           gradientStops: [
@@ -50,6 +51,7 @@
           axisInterval: 10,
           width: 480,
           height: 320,
+          leftPlotPadding: 0,
           barWidth: 48,
           barGap: 12,
           useGradient: true
@@ -81,6 +83,17 @@
           return COLOR_OPTIONS.some((option) => option.value === value) ? value : DEFAULTS.color;
         };
 
+        const isHexColor = (value) => /^#([0-9a-fA-F]{6})$/.test(String(value ?? "").trim());
+
+        const normalizeGradientColor = (rawValue, fallback = DEFAULTS.color) => {
+          const value = String(rawValue ?? "").trim();
+          if (COLOR_OPTIONS.some((option) => option.value === value)) {
+            return value;
+          }
+
+          return isHexColor(value) ? value.toUpperCase() : fallback;
+        };
+
         const normalizeDimension = (rawValue, fallback, min, max) => {
           const value = Number(rawValue);
           if (!Number.isFinite(value)) {
@@ -93,14 +106,14 @@
         const normalizeGradientStops = (rawValue, fallbackStartColor, fallbackEndColor) => {
           if (!Array.isArray(rawValue)) {
             return [
-              { color: normalizeColor(fallbackStartColor), offset: 0 },
-              { color: normalizeColor(fallbackEndColor), offset: 100 }
+              { color: normalizeGradientColor(fallbackStartColor), offset: 0 },
+              { color: normalizeGradientColor(fallbackEndColor), offset: 100 }
             ];
           }
 
           const normalized = rawValue
             .map((stop, index) => ({
-              color: normalizeColor(stop && stop.color),
+              color: normalizeGradientColor(stop && stop.color, index === 0 ? normalizeGradientColor(fallbackStartColor) : normalizeGradientColor(fallbackEndColor)),
               offset: normalizeDimension(stop && stop.offset, index === 0 ? 0 : 100, 0, 100)
             }))
             .sort((left, right) => left.offset - right.offset);
@@ -108,9 +121,14 @@
           return normalized.length >= 2
             ? normalized
             : [
-                { color: normalizeColor(fallbackStartColor), offset: 0 },
-                { color: normalizeColor(fallbackEndColor), offset: 100 }
+                { color: normalizeGradientColor(fallbackStartColor), offset: 0 },
+                { color: normalizeGradientColor(fallbackEndColor), offset: 100 }
               ];
+        };
+
+        const normalizeBackgroundColor = (rawValue) => {
+          const value = String(rawValue ?? "").trim();
+          return /^#([0-9a-fA-F]{6})$/.test(value) ? value.toUpperCase() : DEFAULTS.backgroundColor;
         };
 
         const escapeXml = (value) =>
@@ -141,10 +159,10 @@
         const createPayloadFromConfig = (config) => {
           const color = normalizeColor(config.color);
           const colorOption = COLOR_OPTIONS.find((option) => option.value === color) || COLOR_OPTIONS[0];
-          const gradientStartColor = normalizeColor(config.gradientStartColor || config.color || DEFAULTS.gradientStartColor);
-          const gradientEndColor = normalizeColor(config.gradientEndColor || config.color || DEFAULTS.gradientEndColor);
-          const gradientStartOption = COLOR_OPTIONS.find((option) => option.value === gradientStartColor) || colorOption;
-          const gradientEndOption = COLOR_OPTIONS.find((option) => option.value === gradientEndColor) || colorOption;
+          const gradientStartColor = normalizeGradientColor(config.gradientStartColor || config.color || DEFAULTS.gradientStartColor);
+          const gradientEndColor = normalizeGradientColor(config.gradientEndColor || config.color || DEFAULTS.gradientEndColor);
+          const gradientStartOption = COLOR_OPTIONS.find((option) => option.value === gradientStartColor);
+          const gradientEndOption = COLOR_OPTIONS.find((option) => option.value === gradientEndColor);
           const gradientStops = normalizeGradientStops(config.gradientStops, gradientStartColor, gradientEndColor);
 
           return {
@@ -152,20 +170,22 @@
             rows: parseRows(config.data ?? DEFAULTS.data),
             width: normalizeDimension(config.width, DEFAULTS.width, 240, 900),
             height: normalizeDimension(config.height, DEFAULTS.height, 240, 700),
+            leftPlotPadding: normalizeDimension(config.leftPlotPadding, DEFAULTS.leftPlotPadding, 0, 120),
             barWidth: normalizeDimension(config.barWidth, DEFAULTS.barWidth, 12, 120),
             barGap: normalizeDimension(config.barGap, DEFAULTS.barGap, 0, 48),
             axisInterval: normalizeDimension(config.axisInterval, DEFAULTS.axisInterval, 1, 100),
             useGradient: true,
             color,
+            backgroundColor: normalizeBackgroundColor(config.backgroundColor),
             colorHex: colorOption.hex,
             gradientStartColor,
-            gradientStartHex: gradientStartOption.hex,
+            gradientStartHex: isHexColor(gradientStartColor) ? gradientStartColor.toUpperCase() : (gradientStartOption || colorOption).hex,
             gradientEndColor,
-            gradientEndHex: gradientEndOption.hex,
+            gradientEndHex: isHexColor(gradientEndColor) ? gradientEndColor.toUpperCase() : (gradientEndOption || colorOption).hex,
             gradientStops: gradientStops.map((stop) => ({
               color: stop.color,
               offset: stop.offset,
-              hex: (COLOR_OPTIONS.find((option) => option.value === stop.color) || colorOption).hex
+              hex: isHexColor(stop.color) ? stop.color.toUpperCase() : (COLOR_OPTIONS.find((option) => option.value === stop.color) || colorOption).hex
             }))
           };
         };
@@ -184,7 +204,10 @@
           const rightPad = 12;
           const axisY = plotTop + plotHeight;
           const labelY = axisY + 18;
-          const innerWidth = rows.length * payload.barWidth + Math.max(0, rows.length - 1) * payload.barGap;
+          const innerWidth =
+            payload.leftPlotPadding +
+            rows.length * payload.barWidth +
+            Math.max(0, rows.length - 1) * payload.barGap;
           const svgWidth = Math.max(payload.width, leftPad + innerWidth + rightPad);
           const svgHeight = axisY + axisGap + labelRowHeight;
           const plotRight = svgWidth - rightPad;
@@ -247,7 +270,7 @@
 
           const bars = rows
             .map((row, index) => {
-              const x = leftPad + index * (payload.barWidth + payload.barGap);
+              const x = leftPad + payload.leftPlotPadding + index * (payload.barWidth + payload.barGap);
               const barHeight = Math.max(8, Math.round((row.value / maxValue) * plotHeight));
               const y = axisY - barHeight;
               const fill = payload.useGradient ? "url(#bar-gradient-" + index + ")" : payload.colorHex;
@@ -271,6 +294,13 @@
             svgHeight +
             '">' +
             defs +
+            '<rect x="0" y="0" width="' +
+            svgWidth +
+            '" height="' +
+            svgHeight +
+            '" fill="' +
+            payload.backgroundColor +
+            '" />' +
             guideMarkup +
             '<line x1="' +
             leftPad +

@@ -148,6 +148,12 @@
         background: #fff;
       }
 
+      #preview-size-number {
+        width: 4.5ch;
+        min-width: 4.5ch;
+        max-width: 4.5ch;
+      }
+
       .swatch-button,
       .stop-swatch {
         width: 24px;
@@ -394,7 +400,7 @@
       <div class="shell" data-layout="two-column">
       <div class="controls">
         <div class="title">Bar chart configuration</div>
-        <div class="build-badge">Config build 2.114.0</div>
+        <div class="build-badge">Config build 2.121.0</div>
 
         <div class="section">
           <button class="section-toggle" type="button" data-toggle="series">
@@ -413,7 +419,7 @@
 
         <div class="section">
           <button class="section-toggle" type="button" data-toggle="background">
-            <span>Background</span>
+            <span>Background colors</span>
             <span id="background-toggle-text">+</span>
           </button>
           <div class="section-body" id="background-body" hidden>
@@ -441,20 +447,30 @@
         </div>
 
         <div class="section">
-          <button class="section-toggle" type="button" data-toggle="gradient">
-            <span>Gradient</span>
-            <span id="gradient-toggle-text">-</span>
+          <button class="section-toggle" type="button" data-toggle="bar-colors">
+            <span>Bar Colors</span>
+            <span id="bar-colors-toggle-text">+</span>
           </button>
-          <div class="section-body" id="gradient-body">
-            <div class="field-row">
-              <label></label>
-              <button class="subtle-btn" id="add-stop" type="button">Add stop</button>
+          <div class="section-body" id="bar-colors-body" hidden>
+            <div class="field-row" id="bar-mode-row">
+              <label>Mode</label>
+              <label><input type="radio" name="bar-mode" value="solid" checked /> Solid color</label>
+              <label><input type="radio" name="bar-mode" value="gradient" /> Gradient</label>
             </div>
-            <div class="stops" id="gradient-stops"></div>
-            <div class="field-row" id="gradient-custom-row">
-              <label for="gradient-custom-color-input">Stop color</label>
-              <input class="color-input" id="gradient-custom-color-input" type="color" value="#0052CC" />
-              <input class="hex-input" id="gradient-custom-hex-input" type="text" value="#0052CC" />
+            <div class="field-row" id="bar-custom-row">
+              <label for="bar-color-input">Bar color</label>
+              <input class="color-input" id="bar-color-input" type="color" value="#0052CC" />
+              <input class="hex-input" id="bar-hex-input" type="text" value="#0052CC" />
+            </div>
+            <div class="field-row" id="bar-gradient-start-row" hidden>
+              <label for="bar-gradient-start-input">Gradient from</label>
+              <input class="color-input" id="bar-gradient-start-input" type="color" value="#0052CC" />
+              <input class="hex-input" id="bar-gradient-start-hex-input" type="text" value="#0052CC" />
+            </div>
+            <div class="field-row" id="bar-gradient-end-row" hidden>
+              <label for="bar-gradient-end-input">Gradient to</label>
+              <input class="color-input" id="bar-gradient-end-input" type="color" value="#00B8D9" />
+              <input class="hex-input" id="bar-gradient-end-hex-input" type="text" value="#00B8D9" />
             </div>
           </div>
         </div>
@@ -538,23 +554,20 @@
           title: "Quarterly sales",
           data: "Q1,12\nQ2,18\nQ3,9\nQ4,22",
           color: "blue",
+          barMode: "gradient",
+          barColor: "#0052CC",
           backgroundMode: "solid",
           backgroundColor: "#FFFFFF",
           backgroundGradientStartColor: "#FFFFFF",
           backgroundGradientEndColor: "#E9F2FF",
-          gradientStartColor: "blue",
-          gradientEndColor: "teal",
-          gradientStops: [
-            { color: "blue", offset: 0 },
-            { color: "teal", offset: 100 }
-          ],
+          barGradientStartColor: "#0052CC",
+          barGradientEndColor: "#00B8D9",
           axisInterval: 10,
           width: 480,
           height: 320,
           leftPlotPadding: 0,
           barWidth: 48,
-          barGap: 12,
-          useGradient: true
+          barGap: 12
         };
 
         const COLOR_OPTIONS = [
@@ -580,8 +593,6 @@
         let state = { ...DEFAULTS };
         let pickerState = null;
         let previewScale = 30;
-        let selectedGradientStopIndex = 0;
-
         const qs = (selector) => document.querySelector(selector);
         const previewRoot = qs("#preview-root");
         const statusEl = qs("#status");
@@ -593,6 +604,7 @@
         const previewSizeRangeEl = qs("#preview-size-range");
         const previewSizeNumberEl = qs("#preview-size-number");
         const backgroundModeEls = Array.from(document.querySelectorAll('input[name="background-mode"]'));
+        const barModeEls = Array.from(document.querySelectorAll('input[name="bar-mode"]'));
         const backgroundColorInputEl = qs("#background-color-input");
         const backgroundHexInputEl = qs("#background-hex-input");
         const backgroundGradientStartInputEl = qs("#background-gradient-start-input");
@@ -602,8 +614,15 @@
         const backgroundCustomRowEl = qs("#background-custom-row");
         const backgroundGradientStartRowEl = qs("#background-gradient-start-row");
         const backgroundGradientEndRowEl = qs("#background-gradient-end-row");
-        const gradientCustomColorInputEl = qs("#gradient-custom-color-input");
-        const gradientCustomHexInputEl = qs("#gradient-custom-hex-input");
+        const barColorInputEl = qs("#bar-color-input");
+        const barHexInputEl = qs("#bar-hex-input");
+        const barGradientStartInputEl = qs("#bar-gradient-start-input");
+        const barGradientStartHexInputEl = qs("#bar-gradient-start-hex-input");
+        const barGradientEndInputEl = qs("#bar-gradient-end-input");
+        const barGradientEndHexInputEl = qs("#bar-gradient-end-hex-input");
+        const barCustomRowEl = qs("#bar-custom-row");
+        const barGradientStartRowEl = qs("#bar-gradient-start-row");
+        const barGradientEndRowEl = qs("#bar-gradient-end-row");
 
         const setStyles = (element, styles) => {
           if (!element) {
@@ -739,7 +758,7 @@
             })
           );
 
-          backgroundModeEls.forEach((element) => {
+          [...backgroundModeEls, ...barModeEls].forEach((element) => {
             if (element.parentElement) {
               setStyles(element.parentElement, {
                 minWidth: "0",
@@ -914,6 +933,16 @@
           return isHexColor(value) ? value.toUpperCase() : fallback;
         };
 
+        const colorValueToHex = (rawValue, fallbackHex) => {
+          const value = String(rawValue ?? "").trim();
+          if (isHexColor(value)) {
+            return value.toUpperCase();
+          }
+
+          const option = COLOR_OPTIONS.find((entry) => entry.value === value);
+          return option ? option.hex : fallbackHex;
+        };
+
         const normalizeDimension = (rawValue, fallback, min, max) => {
           const value = Number(rawValue);
           if (!Number.isFinite(value)) {
@@ -929,56 +958,42 @@
         };
 
         const normalizeBackgroundMode = (rawValue) => (String(rawValue ?? "").trim() === "gradient" ? "gradient" : "solid");
-
-        const normalizeGradientStops = (rawValue, fallbackStartColor, fallbackEndColor) => {
-          if (!Array.isArray(rawValue)) {
-            return [
-              { color: normalizeGradientColor(fallbackStartColor), offset: 0 },
-              { color: normalizeGradientColor(fallbackEndColor), offset: 100 }
-            ];
-          }
-
-          const normalized = rawValue
-            .map((stop, index) => ({
-              color: normalizeGradientColor(stop?.color, index === 0 ? normalizeGradientColor(fallbackStartColor) : normalizeGradientColor(fallbackEndColor)),
-              offset: normalizeDimension(stop?.offset, index === 0 ? 0 : 100, 0, 100)
-            }))
-            .sort((left, right) => left.offset - right.offset);
-
-          return normalized.length >= 2
-            ? normalized
-            : [
-                { color: normalizeGradientColor(fallbackStartColor), offset: 0 },
-                { color: normalizeGradientColor(fallbackEndColor), offset: 100 }
-              ];
-        };
+        const normalizeBarMode = (rawValue) => (String(rawValue ?? "").trim() === "solid" ? "solid" : "gradient");
 
         const normalizeConfig = (raw) => {
           const color = normalizeColor(raw.color);
-          const gradientStops = normalizeGradientStops(
-            raw.gradientStops,
-            raw.gradientStartColor ?? color,
-            raw.gradientEndColor ?? color
-          );
+          const colorHex = colorValueToHex(raw.color ?? color, DEFAULTS.barColor);
+          const legacyStart = Array.isArray(raw.gradientStops) && raw.gradientStops[0] ? raw.gradientStops[0].color : raw.gradientStartColor ?? raw.color;
+          const legacyEnd = Array.isArray(raw.gradientStops) && raw.gradientStops[raw.gradientStops.length - 1]
+            ? raw.gradientStops[raw.gradientStops.length - 1].color
+            : raw.gradientEndColor ?? raw.color;
+          const barColor = colorValueToHex(raw.barColor ?? raw.color, colorHex);
+          const barGradientStartColor = colorValueToHex(raw.barGradientStartColor ?? legacyStart, DEFAULTS.barGradientStartColor);
+          const barGradientEndColor = colorValueToHex(raw.barGradientEndColor ?? legacyEnd, DEFAULTS.barGradientEndColor);
+          const barMode = raw.barMode
+            ? normalizeBarMode(raw.barMode)
+            : raw.useGradient === false
+              ? "solid"
+              : "gradient";
 
           return {
             title: String(raw.title ?? "").trim() || DEFAULTS.title,
             data: String(raw.data ?? "").trim() || DEFAULTS.data,
             color,
+            barMode,
+            barColor,
             backgroundMode: normalizeBackgroundMode(raw.backgroundMode),
             backgroundColor: normalizeBackgroundColor(raw.backgroundColor),
             backgroundGradientStartColor: normalizeBackgroundColor(raw.backgroundGradientStartColor ?? raw.backgroundColor ?? DEFAULTS.backgroundGradientStartColor),
             backgroundGradientEndColor: normalizeBackgroundColor(raw.backgroundGradientEndColor ?? DEFAULTS.backgroundGradientEndColor),
-            gradientStartColor: gradientStops[0].color,
-            gradientEndColor: gradientStops[gradientStops.length - 1].color,
-            gradientStops,
+            barGradientStartColor,
+            barGradientEndColor,
             axisInterval: normalizeDimension(raw.axisInterval, DEFAULTS.axisInterval, 1, 100),
             width: normalizeDimension(raw.width, DEFAULTS.width, 240, 900),
             height: normalizeDimension(raw.height, DEFAULTS.height, 240, 700),
             leftPlotPadding: normalizeDimension(raw.leftPlotPadding, DEFAULTS.leftPlotPadding, 0, 120),
             barWidth: normalizeDimension(raw.barWidth, DEFAULTS.barWidth, 12, 120),
-            barGap: normalizeDimension(raw.barGap, DEFAULTS.barGap, 0, 48),
-            useGradient: true
+            barGap: normalizeDimension(raw.barGap, DEFAULTS.barGap, 0, 48)
           };
         };
 
@@ -1006,8 +1021,6 @@
             .replaceAll(">", "&gt;")
             .replaceAll('"', "&quot;")
             .replaceAll("'", "&apos;");
-
-        const resolveStopHex = (stop) => (isHexColor(stop?.color) ? stop.color : (COLOR_OPTIONS.find((option) => option.value === stop.color) || COLOR_OPTIONS[0]).hex);
 
         const buildSvg = (payload) => {
           const rows = parseRows(payload.data);
@@ -1046,16 +1059,8 @@
                   '<linearGradient id="bar-gradient-' +
                   index +
                   '" x1="0" y1="0" x2="0" y2="1">' +
-                  payload.gradientStops
-                    .map(
-                      (stop) =>
-                        '<stop offset="' +
-                        stop.offset +
-                        '%" stop-color="' +
-                        resolveStopHex(stop) +
-                        '" stop-opacity="1"/>'
-                    )
-                    .join("") +
+                  '<stop offset="0%" stop-color="' + payload.barGradientStartColor + '" stop-opacity="1"/>' +
+                  '<stop offset="100%" stop-color="' + payload.barGradientEndColor + '" stop-opacity="1"/>' +
                   "</linearGradient>"
               )
               .join("") +
@@ -1096,7 +1101,7 @@
 
               return [
                 '<text x="' + (x + payload.barWidth / 2) + '" y="' + (plotTop - 6) + '" text-anchor="middle" font-size="12" fill="#172B4D">' + escapeXml(row.value) + "</text>",
-                '<rect x="' + x + '" y="' + y + '" width="' + payload.barWidth + '" height="' + barHeight + '" rx="4" ry="4" fill="url(#bar-gradient-' + index + ')" />',
+                '<rect x="' + x + '" y="' + y + '" width="' + payload.barWidth + '" height="' + barHeight + '" rx="4" ry="4" fill="' + (payload.barMode === "gradient" ? "url(#bar-gradient-" + index + ")" : payload.barColor) + '" />',
                 '<text x="' + (x + payload.barWidth / 2) + '" y="' + labelY + '" text-anchor="middle" font-size="12" fill="#172B4D">' + escapeXml(row.label) + "</text>"
               ].join("");
             })
@@ -1220,98 +1225,39 @@
           renderAll();
         };
 
-        const renderStops = () => {
-          const container = qs("#gradient-stops");
-          container.innerHTML = "";
+        const syncBarControls = () => {
+          const mode = normalizeBarMode(state.barMode);
+          const color = normalizeBackgroundColor(state.barColor);
+          const gradientStart = normalizeBackgroundColor(state.barGradientStartColor);
+          const gradientEnd = normalizeBackgroundColor(state.barGradientEndColor);
 
-          normalizeConfig(state).gradientStops.forEach((stop, index) => {
-            const row = document.createElement("div");
-            row.className = "stop-row";
-            row.style.borderColor = index === selectedGradientStopIndex ? "#0c66e4" : "#d0d4db";
-            row.innerHTML =
-              '<div class="stop-head">' +
-              '<div class="stop-label">Stop ' + (index + 1) + "</div>" +
-              '<div class="stop-actions">' +
-              '<span class="stop-swatch" style="background:' + resolveStopHex(stop) + '"></span>' +
-              (state.gradientStops.length > 2 ? '<button class="subtle-btn" type="button" data-remove-stop="' + index + '">Remove</button>' : "") +
-              "</div></div>" +
-              '<div class="swatch-row" data-stop-swatches="' + index + '"></div>' +
-              '<div class="field-row">' +
-              "<label>Position</label>" +
-              '<input class="range" type="range" min="0" max="100" step="1" value="' + stop.offset + '" data-stop-range="' + index + '">' +
-              '<input class="number" type="number" min="0" max="100" value="' + stop.offset + '" data-stop-number="' + index + '">' +
-              "</div>";
-            container.appendChild(row);
+          document.body.dataset.barMode = mode;
+          barModeEls.forEach((element) => {
+            element.checked = element.value === mode;
           });
-
-          container.querySelectorAll("[data-stop-swatches]").forEach((swatchRow) => {
-            const stopIndex = Number(swatchRow.dataset.stopSwatches);
-            COLOR_OPTIONS.forEach((option) => {
-              const button = document.createElement("button");
-              button.type = "button";
-                              button.className = "swatch-button" + (state.gradientStops[stopIndex].color === option.value ? " selected" : "");
-              button.style.background = option.hex;
-              button.setAttribute("aria-label", option.label);
-              button.addEventListener("click", () => {
-                selectedGradientStopIndex = stopIndex;
-                state.gradientStops[stopIndex].color = option.value;
-                renderAll();
-              });
-              swatchRow.appendChild(button);
-            });
-          });
-
-          container.querySelectorAll("[data-remove-stop]").forEach((button) => {
-            button.addEventListener("click", () => {
-              if (state.gradientStops.length > 2) {
-                const removedIndex = Number(button.dataset.removeStop);
-                state.gradientStops.splice(removedIndex, 1);
-                selectedGradientStopIndex = Math.max(0, Math.min(selectedGradientStopIndex, state.gradientStops.length - 1));
-                renderAll();
-              }
-            });
-          });
-
-          container.querySelectorAll("[data-stop-range]").forEach((input) => {
-            input.addEventListener("input", () => {
-              state.gradientStops[Number(input.dataset.stopRange)].offset = normalizeDimension(input.value, 0, 0, 100);
-              renderAll();
-            });
-          });
-
-          container.querySelectorAll("[data-stop-number]").forEach((input) => {
-            input.addEventListener("input", () => {
-              state.gradientStops[Number(input.dataset.stopNumber)].offset = normalizeDimension(input.value, 0, 0, 100);
-              renderAll();
-            });
-          });
-
-          Array.from(container.children).forEach((row, index) => {
-            row.addEventListener("click", () => {
-              selectedGradientStopIndex = index;
-              syncGradientCustomControls();
-              renderStops();
-            });
-          });
+          barColorInputEl.value = color;
+          barHexInputEl.value = color;
+          barGradientStartInputEl.value = gradientStart;
+          barGradientStartHexInputEl.value = gradientStart;
+          barGradientEndInputEl.value = gradientEnd;
+          barGradientEndHexInputEl.value = gradientEnd;
+          setRowVisibility(barCustomRowEl, mode === "solid");
+          setRowVisibility(barGradientStartRowEl, mode === "gradient");
+          setRowVisibility(barGradientEndRowEl, mode === "gradient");
         };
 
-        const syncGradientCustomControls = () => {
-          const stops = normalizeConfig(state).gradientStops;
-          selectedGradientStopIndex = Math.max(0, Math.min(selectedGradientStopIndex, stops.length - 1));
-          const selectedStop = stops[selectedGradientStopIndex] || stops[0];
-          const hex = resolveStopHex(selectedStop);
-          gradientCustomColorInputEl.value = hex;
-          gradientCustomHexInputEl.value = hex;
+        const updateBarColor = (rawValue) => {
+          state.barColor = normalizeBackgroundColor(rawValue);
+          renderAll();
         };
 
-        const updateSelectedGradientStopColor = (rawValue) => {
-          const nextColor = normalizeGradientColor(rawValue, state.gradientStops[selectedGradientStopIndex]?.color ?? DEFAULTS.gradientStartColor);
-          if (!isHexColor(nextColor)) {
-            syncGradientCustomControls();
-            return;
-          }
+        const updateBarGradientColor = (field, rawValue) => {
+          state[field] = normalizeBackgroundColor(rawValue);
+          renderAll();
+        };
 
-          state.gradientStops[selectedGradientStopIndex].color = nextColor;
+        const updateBarMode = (rawValue) => {
+          state.barMode = normalizeBarMode(rawValue);
           renderAll();
         };
 
@@ -1347,8 +1293,7 @@
           qs("#series-data").value = state.data;
           qs("#axis-interval").value = String(state.axisInterval);
           syncBackgroundControls();
-          renderStops();
-          syncGradientCustomControls();
+          syncBarControls();
           syncPreviewScaleControls();
           renderPreview();
           qs("#width-range").value = String(state.width);
@@ -1364,7 +1309,7 @@
         };
 
         const initToggles = () => {
-          ["series", "background", "gradient", "sizing"].forEach((name) => {
+          ["series", "background", "bar-colors", "sizing"].forEach((name) => {
             qs('[data-toggle="' + name + '"]').addEventListener("click", () => {
               const body = qs("#" + name + "-body");
               const icon = qs("#" + name + "-toggle-text");
@@ -1394,25 +1339,18 @@
           backgroundModeEls.forEach((element) => {
             element.addEventListener("change", (event) => updateBackgroundMode(event.target.value));
           });
-
-          qs("#add-stop").addEventListener("click", () => {
-            if (state.gradientStops.length >= 5) {
-              return;
-            }
-            const last = state.gradientStops[state.gradientStops.length - 1];
-            state.gradientStops.push({
-              color: last.color,
-              offset: Math.min(100, Math.round((last.offset + 100) / 2))
-            });
-            selectedGradientStopIndex = state.gradientStops.length - 1;
-            renderAll();
+          barColorInputEl.addEventListener("input", (event) => updateBarColor(event.target.value));
+          barHexInputEl.addEventListener("input", (event) => updateBarColor(event.target.value));
+          barGradientStartInputEl.addEventListener("input", (event) => updateBarGradientColor("barGradientStartColor", event.target.value));
+          barGradientStartHexInputEl.addEventListener("input", (event) => updateBarGradientColor("barGradientStartColor", event.target.value));
+          barGradientEndInputEl.addEventListener("input", (event) => updateBarGradientColor("barGradientEndColor", event.target.value));
+          barGradientEndHexInputEl.addEventListener("input", (event) => updateBarGradientColor("barGradientEndColor", event.target.value));
+          barModeEls.forEach((element) => {
+            element.addEventListener("change", (event) => updateBarMode(event.target.value));
           });
 
           previewSizeRangeEl.addEventListener("input", (event) => updatePreviewScale(event.target.value));
           previewSizeNumberEl.addEventListener("input", (event) => updatePreviewScale(event.target.value));
-
-          gradientCustomColorInputEl.addEventListener("input", (event) => updateSelectedGradientStopColor(event.target.value));
-          gradientCustomHexInputEl.addEventListener("input", (event) => updateSelectedGradientStopColor(event.target.value));
 
           bindRangePair("width-range", "width-number", "width", 240, 900);
           bindRangePair("height-range", "height-number", "height", 240, 700);

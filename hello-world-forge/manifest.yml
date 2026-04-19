@@ -16,10 +16,20 @@ modules:
       title: bar chart 2
       description: Displays a simple configurable custom bar chart and opens the standard Forge configuration panel in edit mode.
       config:
-        resource: bar-chart-2-config
+        resource: bar-chart-2-config-v2
         render: default
         viewportSize: max
         title: Configure bar chart 2
+    - key: custom-bar-chart-macro-v2
+      resource: main
+      render: native
+      title: bar chart 2 new
+      description: Displays a simple configurable custom bar chart and opens the standard Forge configuration panel in edit mode.
+      config:
+        resource: bar-chart-2-config-v3
+        render: default
+        viewportSize: max
+        title: Configure bar chart 2 new
 resources:
   - key: forge-main
     path: src/frontend/forge-index.jsx
@@ -27,8 +37,10 @@ resources:
     path: src/frontend/forge-config.jsx
   - key: main
     path: src/frontend/index.jsx
-  - key: bar-chart-2-config
+  - key: bar-chart-2-config-v2
     path: src/static/bar-chart-2-config
+  - key: bar-chart-2-config-v3
+    path: src/static/bar-chart-2-config-v3
   - key: bar-chart-2-frame
     path: src/static/bar-chart-2
 app:

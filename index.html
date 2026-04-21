@@ -10,15 +10,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="workspace.css">
+  <style id="top-tabs-custom-style"></style>
+  <script src="debug-agent.js"></script>
 </head>
 <body>
+  <header class="ws-topbar">
+    <nav class="ws-tabs" aria-label="App sections">
+      <a class="ws-tab is-active" href="index.html" aria-current="page">Dashboard Editor</a>
+      <a class="ws-tab" href="chart-builder.html">Chart Builder</a>
+    </nav>
+  </header>
   <div class="workspace-shell">
     <aside class="sidebar">
       <div class="sidebar-panel">
         <div class="panel-header">
           <div class="panel-header-copy">
             <p class="section-label">Library</p>
-            <h2>Pages</h2>
           </div>
           <div class="panel-header-actions">
             <span class="pill" id="page-count">0 pages</span>
@@ -31,8 +38,28 @@
           </div>
         </div>
         <div class="sidebar-actions sidebar-actions-compact">
-          <button class="button button-primary" id="new-page-button" type="button">New page</button>
-          <button class="button button-secondary" id="duplicate-page-button" type="button">Duplicate</button>
+          <button class="button button-secondary sidebar-icon-button" id="new-page-button" type="button" aria-label="New page" title="New page">
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path d="M8 3v10"></path>
+              <path d="M3 8h10"></path>
+            </svg>
+          </button>
+          <button class="button button-secondary sidebar-icon-button" id="duplicate-page-button" type="button" aria-label="Duplicate page" title="Duplicate page">
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <rect x="5" y="3" width="8" height="8" rx="1.5"></rect>
+              <path d="M3.5 5.5V12a1.5 1.5 0 0 0 1.5 1.5H10.5"></path>
+            </svg>
+          </button>
+          <button class="button button-secondary sidebar-icon-button" id="delete-page-button" type="button" aria-label="Delete page" title="Delete page">
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path d="M3.5 4.5h9"></path>
+              <path d="M6.5 4.5V3.25A.75.75 0 0 1 7.25 2.5h1.5a.75.75 0 0 1 .75.75V4.5"></path>
+              <path d="M5 6.5v5"></path>
+              <path d="M8 6.5v5"></path>
+              <path d="M11 6.5v5"></path>
+              <path d="M4.5 4.5 5 13a1 1 0 0 0 1 .94h4a1 1 0 0 0 1-.94l.5-8.5"></path>
+            </svg>
+          </button>
         </div>
         <nav class="page-list" id="page-list" aria-label="Page list"></nav>
       </div>
@@ -64,6 +91,28 @@
               <option value="26px">26</option>
             </select>
           </label>
+          <div class="toolbar-menu" id="shape-menu">
+            <button class="button button-secondary toolbar-button toolbar-menu-trigger" id="shape-menu-trigger" type="button" aria-haspopup="true" aria-expanded="false">Shapes</button>
+            <div class="toolbar-menu-dropdown" id="shape-menu-dropdown" hidden>
+              <button class="toolbar-menu-item" data-shape-type="rectangle" type="button">Rectangle</button>
+              <button class="toolbar-menu-item" data-shape-type="rounded-rectangle" type="button">Rounded rectangle</button>
+              <button class="toolbar-menu-item" data-shape-type="circle" type="button">Circle</button>
+              <button class="toolbar-menu-item" data-shape-type="oval" type="button">Oval</button>
+              <button class="toolbar-menu-item" data-shape-type="triangle" type="button">Triangle</button>
+              <button class="toolbar-menu-item" data-shape-type="diamond" type="button">Diamond</button>
+            </div>
+          </div>
+          <div class="toolbar-menu" id="button-menu">
+            <button class="button button-secondary toolbar-button toolbar-menu-trigger" id="button-menu-trigger" type="button" aria-haspopup="true" aria-expanded="false">Buttons</button>
+            <div class="toolbar-menu-dropdown" id="button-menu-dropdown" hidden>
+              <button class="toolbar-menu-item" data-button-type="sleek-button" type="button">Sleek button</button>
+              <button class="toolbar-menu-item" data-button-type="minimal-button" type="button">Minimal button</button>
+              <button class="toolbar-menu-item" data-button-type="glassy-button" type="button">Glassy button</button>
+              <button class="toolbar-menu-item" data-button-type="pill-button" type="button">Pill button</button>
+            </div>
+          </div>
+          <button class="button button-secondary toolbar-button" id="insert-image-button" type="button">Insert Image</button>
+          <input id="insert-image-input" type="file" accept="image/*" hidden>
           <div class="chart-menu" id="chart-menu">
             <button class="button button-secondary toolbar-button chart-menu-trigger" id="chart-menu-trigger" type="button" aria-haspopup="true" aria-expanded="false">Charts</button>
             <div class="chart-menu-dropdown" id="chart-menu-dropdown" hidden>
@@ -71,6 +120,9 @@
               <button class="chart-menu-item" data-chart-type="line" type="button">Line chart</button>
               <button class="chart-menu-item" data-chart-type="area" type="button">Area chart</button>
               <button class="chart-menu-item" data-chart-type="donut" type="button">Donut chart</button>
+              <div class="chart-menu-divider"></div>
+              <div class="chart-menu-section-label">Saved charts</div>
+              <div class="chart-menu-saved-list" id="chart-menu-saved-list"></div>
             </div>
           </div>
           <button class="button button-secondary toolbar-button" id="generate-content-button" type="button">Generate content</button>
@@ -80,7 +132,7 @@
               <path d="M2.5 7H13.5V12A1.5 1.5 0 0 1 12 13.5H4A1.5 1.5 0 0 1 2.5 12V7Z"></path>
               <path d="M5 4.5h2"></path>
             </svg>
-            <span>Create Tab Area</span>
+            <span>Tab Area</span>
           </button>
           <a class="button button-secondary toolbar-link-publish" id="page-route-link" href="#/page/home-dashboard">Publish page</a>
           <a class="button button-secondary toolbar-link-edit" id="top-edit-route-link" href="#/edit/home-dashboard" hidden>Edit page</a>
@@ -99,7 +151,6 @@
 
             <div class="editor-actions">
               <button class="button button-primary" type="submit">Save page</button>
-              <button class="button button-secondary" id="delete-page-button" type="button">Delete page</button>
             </div>
           </form>
         </article>
@@ -120,7 +171,202 @@
     </main>
   </div>
 
-  <footer class="dashboard-bottom-bar" aria-hidden="true"></footer>
+  <footer class="dashboard-bottom-bar">
+    <button class="button button-secondary bottom-bar-settings-button" id="bottom-bar-settings-button" type="button">Settings</button>
+  </footer>
+
+  <div class="settings-modal-backdrop" id="settings-modal-backdrop" hidden></div>
+  <aside class="settings-modal" id="settings-modal" hidden>
+    <div class="settings-modal-inner">
+      <div class="panel-header settings-modal-header" id="settings-modal-header">
+        <div>
+          <p class="section-label">Settings</p>
+          <h2>Workspace settings</h2>
+        </div>
+        <div class="panel-actions">
+          <button class="button button-secondary" id="settings-modal-close-button" type="button">Close</button>
+        </div>
+      </div>
+      <div class="settings-modal-tabs" role="tablist" aria-label="Settings sections">
+        <button class="settings-modal-tab is-active" id="settings-tab-library" type="button" role="tab" aria-selected="true">Library</button>
+        <button class="settings-modal-tab" id="settings-tab-toptabs" type="button" role="tab" aria-selected="false">Top tabs</button>
+      </div>
+      <div class="settings-modal-panel" id="settings-panel-library">
+        <div class="field">
+          <span class="field-label">Selected page style</span>
+          <div class="shape-editor-paint-row">
+            <div class="tab-area-fill-picker" role="group" aria-label="Library page selected fill">
+              <button class="tab-area-fill-button" id="library-fill-button" type="button" aria-label="Open library selected fill options" aria-expanded="false">
+                <span class="tab-area-fill-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M7 5h10v2H7Zm1 4h8v2H8Zm1 4h6v2H9Zm1 4h4v2h-4Z" fill="currentColor"/>
+                  </svg>
+                </span>
+                <span class="tab-area-fill-swatch" id="library-fill-swatch" aria-hidden="true"></span>
+                <span class="tab-area-fill-label">Fill</span>
+              </button>
+            </div>
+            <div class="tab-area-fill-picker" role="group" aria-label="Library page selected outline">
+              <button class="tab-area-fill-button" id="library-outline-button" type="button" aria-label="Open library selected outline options" aria-expanded="false">
+                <span class="tab-area-fill-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <rect x="5" y="5" width="14" height="14" rx="3" ry="3" fill="none" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </span>
+                <span class="tab-area-fill-swatch" id="library-outline-swatch" aria-hidden="true"></span>
+                <span class="tab-area-fill-label">Outline</span>
+              </button>
+            </div>
+          </div>
+          <label class="field" id="library-outline-thickness-field" style="margin-top:8px;">
+            <span class="field-label">Outline thickness</span>
+            <div class="paint-opacity-row">
+              <input id="library-outline-thickness-input" type="range" min="0" max="8" step="1" value="1">
+              <span class="paint-opacity-value" id="library-outline-thickness-value">1px</span>
+            </div>
+          </label>
+        </div>
+        <div class="tab-area-fill-panel shape-paint-panel" id="library-paint-panel" hidden>
+          <div class="shape-paint-panel-header">
+            <p class="section-label" id="library-paint-target-label">Fill</p>
+            <p class="field-note" id="library-paint-target-note">Edit the selected library page fill.</p>
+          </div>
+          <div class="tab-area-fill-mode">
+            <label class="tab-area-fill-mode-option">
+              <input type="radio" name="library-paint-mode" value="solid" checked>
+              <span>Solid fill</span>
+            </label>
+            <label class="tab-area-fill-mode-option">
+              <input type="radio" name="library-paint-mode" value="gradient">
+              <span>Gradient</span>
+            </label>
+          </div>
+          <div class="tab-area-fill-solid" id="library-paint-solid-panel"></div>
+          <div class="tab-area-fill-gradient" id="library-paint-gradient-panel" hidden>
+            <div class="tab-area-gradient-preview" id="library-paint-gradient-preview" aria-hidden="true"></div>
+            <div class="chart-style-grid">
+              <label class="field">
+                <span class="field-label">Gradient type</span>
+                <select id="library-paint-gradient-type-input">
+                  <option value="linear">Linear</option>
+                  <option value="radial">Radial</option>
+                </select>
+              </label>
+              <label class="field" id="library-paint-gradient-direction-field">
+                <span class="field-label">Direction</span>
+                <select id="library-paint-gradient-direction-input">
+                  <option value="to right">Left to right</option>
+                  <option value="to left">Right to left</option>
+                  <option value="to bottom">Top to bottom</option>
+                  <option value="to top">Bottom to top</option>
+                  <option value="to bottom right">Top left to bottom right</option>
+                  <option value="to bottom left">Top right to bottom left</option>
+                  <option value="to top right">Bottom left to top right</option>
+                  <option value="to top left">Bottom right to top left</option>
+                </select>
+              </label>
+            </div>
+            <div class="tab-area-gradient-actions">
+              <button class="button button-secondary tab-area-gradient-action-button" id="library-paint-add-stop-button" type="button" aria-label="Add stop">+</button>
+              <button class="button button-secondary tab-area-gradient-action-button" id="library-paint-remove-stop-button" type="button" aria-label="Remove stop" hidden>-</button>
+            </div>
+            <div class="tab-area-gradient-stops" id="library-paint-gradient-stops"></div>
+          </div>
+          <div class="tab-area-color-popup" id="library-paint-color-popup" hidden>
+            <div class="tab-area-color-spectrum-wrap">
+              <div class="tab-area-color-spectrum" id="library-paint-color-spectrum" aria-label="Library color spectrum" role="application">
+                <span class="tab-area-color-spectrum-handle" id="library-paint-color-spectrum-handle" aria-hidden="true"></span>
+              </div>
+              <label class="tab-area-color-hue">
+                <span class="field-label">Hue</span>
+                <input id="library-paint-color-hue-input" type="range" min="0" max="360" step="1" value="0">
+              </label>
+            </div>
+            <div class="tab-area-color-grid">
+              <label class="field">
+                <span class="field-label">R</span>
+                <input id="library-paint-color-r-input" type="number" min="0" max="255" step="1">
+              </label>
+              <label class="field">
+                <span class="field-label">G</span>
+                <input id="library-paint-color-g-input" type="number" min="0" max="255" step="1">
+              </label>
+              <label class="field">
+                <span class="field-label">B</span>
+                <input id="library-paint-color-b-input" type="number" min="0" max="255" step="1">
+              </label>
+            </div>
+            <div class="tab-area-color-tools">
+              <button class="button button-secondary" id="library-paint-color-eyedropper-button" type="button">Eyedropper</button>
+            </div>
+          </div>
+          <label class="field" id="library-paint-opacity-field">
+            <span class="field-label">Transparency</span>
+            <div class="paint-opacity-row">
+              <input id="library-paint-opacity-input" type="range" min="0" max="100" step="1" value="100">
+              <span class="paint-opacity-value" id="library-paint-opacity-value">100%</span>
+            </div>
+          </label>
+          <div class="editor-actions">
+            <button class="button button-secondary" id="library-paint-ok-button" type="button">OK</button>
+            <button class="button button-secondary" id="library-paint-cancel-button" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-modal-panel" id="settings-panel-toptabs" hidden>
+        <section class="tt-section">
+          <h3 class="tt-section-title">Words when selected</h3>
+          <div class="tt-grid">
+            <label class="tt-field"><span>Color</span><input type="color" id="tt-sel-color"></label>
+            <label class="tt-field"><span>Font</span>
+              <select id="tt-sel-font">
+                <option value="'Space Grotesk', system-ui, sans-serif">Space Grotesk</option>
+                <option value="Arial, sans-serif">Arial</option>
+                <option value="'Times New Roman', serif">Times New Roman</option>
+                <option value="Georgia, serif">Georgia</option>
+                <option value="'Courier New', monospace">Courier New</option>
+                <option value="Verdana, sans-serif">Verdana</option>
+              </select>
+            </label>
+            <label class="tt-field"><span>Font size</span><input type="number" id="tt-sel-size" min="10" max="48" step="1"></label>
+            <label class="tt-field tt-check"><input type="checkbox" id="tt-sel-bold"><span>Bold</span></label>
+            <label class="tt-field tt-check"><input type="checkbox" id="tt-sel-italic"><span>Italic</span></label>
+            <label class="tt-field"><span>Transparency</span><input type="range" id="tt-sel-opacity" min="0" max="100" step="1"></label>
+          </div>
+        </section>
+
+        <section class="tt-section">
+          <h3 class="tt-section-title">Words when not selected</h3>
+          <div class="tt-grid">
+            <label class="tt-field"><span>Color</span><input type="color" id="tt-idle-color"></label>
+            <label class="tt-field"><span>Font</span>
+              <select id="tt-idle-font">
+                <option value="'Space Grotesk', system-ui, sans-serif">Space Grotesk</option>
+                <option value="Arial, sans-serif">Arial</option>
+                <option value="'Times New Roman', serif">Times New Roman</option>
+                <option value="Georgia, serif">Georgia</option>
+                <option value="'Courier New', monospace">Courier New</option>
+                <option value="Verdana, sans-serif">Verdana</option>
+              </select>
+            </label>
+            <label class="tt-field"><span>Font size</span><input type="number" id="tt-idle-size" min="10" max="48" step="1"></label>
+            <label class="tt-field tt-check"><input type="checkbox" id="tt-idle-bold"><span>Bold</span></label>
+            <label class="tt-field tt-check"><input type="checkbox" id="tt-idle-italic"><span>Italic</span></label>
+            <label class="tt-field"><span>Transparency</span><input type="range" id="tt-idle-opacity" min="0" max="100" step="1"></label>
+          </div>
+        </section>
+
+        <section class="tt-section">
+          <h3 class="tt-section-title">Underline</h3>
+          <div class="tt-grid">
+            <label class="tt-field"><span>Color</span><input type="color" id="tt-underline-color"></label>
+            <label class="tt-field"><span>Width</span><input type="number" id="tt-underline-width" min="0" max="10" step="1"></label>
+          </div>
+        </section>
+      </div>
+    </div>
+  </aside>
 
   <aside class="chart-editor-flyout" id="chart-editor-flyout" hidden>
     <div class="chart-editor-flyout-inner">
@@ -228,6 +474,271 @@
     </div>
   </aside>
 
+  <aside class="tab-area-editor-flyout" id="tab-area-editor-flyout" hidden>
+    <div class="tab-area-editor-flyout-inner">
+      <div class="panel-header">
+        <div>
+          <p class="section-label">Tab Area</p>
+          <h2>Edit tab area</h2>
+        </div>
+      </div>
+      <label class="field">
+        <span class="field-label">Title</span>
+        <input id="tab-area-title-input" type="text" placeholder="Reference title">
+      </label>
+      <label class="field">
+        <span class="field-label">Corner radius</span>
+        <input id="tab-area-radius-input" type="number" min="0" max="48" step="1">
+      </label>
+      <div class="tab-area-fill-picker" role="group" aria-label="Tab area fill">
+        <button class="tab-area-fill-button" id="tab-area-fill-button" type="button" aria-label="Open tab area fill options" aria-expanded="false">
+          <span class="tab-area-fill-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M7 5h10v2H7Zm1 4h8v2H8Zm1 4h6v2H9Zm1 4h4v2h-4Z" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="tab-area-fill-swatch" id="tab-area-fill-swatch" aria-hidden="true"></span>
+          <span class="tab-area-fill-label">Fill</span>
+        </button>
+        <input id="tab-area-fill-input" type="hidden" value="#ffffff">
+        <div class="tab-area-fill-panel" id="tab-area-fill-panel" hidden>
+          <div class="tab-area-fill-mode">
+            <label class="tab-area-fill-mode-option">
+              <input type="radio" name="tab-area-fill-mode" value="solid" checked>
+              <span>Solid fill</span>
+            </label>
+            <label class="tab-area-fill-mode-option">
+              <input type="radio" name="tab-area-fill-mode" value="gradient">
+              <span>Gradient</span>
+            </label>
+          </div>
+          <div class="tab-area-fill-solid" id="tab-area-fill-solid-panel"></div>
+          <div class="tab-area-fill-gradient" id="tab-area-fill-gradient-panel" hidden>
+            <div class="tab-area-gradient-preview" id="tab-area-gradient-preview" aria-hidden="true"></div>
+            <div class="chart-style-grid">
+              <label class="field">
+                <span class="field-label">Gradient type</span>
+                <select id="tab-area-gradient-type-input">
+                  <option value="linear">Linear</option>
+                  <option value="radial">Radial</option>
+                </select>
+              </label>
+              <label class="field" id="tab-area-gradient-direction-field">
+                <span class="field-label">Direction</span>
+                <select id="tab-area-gradient-direction-input">
+                  <option value="to right">Left to right</option>
+                  <option value="to left">Right to left</option>
+                  <option value="to bottom">Top to bottom</option>
+                  <option value="to top">Bottom to top</option>
+                  <option value="to bottom right">Top left to bottom right</option>
+                  <option value="to bottom left">Top right to bottom left</option>
+                  <option value="to top right">Bottom left to top right</option>
+                  <option value="to top left">Bottom right to top left</option>
+                </select>
+              </label>
+            </div>
+            <div class="tab-area-gradient-actions">
+              <button class="button button-secondary tab-area-gradient-action-button" id="tab-area-add-stop-button" type="button" aria-label="Add stop">+</button>
+              <button class="button button-secondary tab-area-gradient-action-button" id="tab-area-remove-stop-button" type="button" aria-label="Remove stop" hidden>-</button>
+            </div>
+            <div class="tab-area-gradient-stops" id="tab-area-gradient-stops"></div>
+          </div>
+          <div class="tab-area-color-popup" id="tab-area-color-popup" hidden>
+            <div class="tab-area-color-spectrum-wrap">
+              <div class="tab-area-color-spectrum" id="tab-area-color-spectrum" aria-label="Color spectrum" role="application">
+                <span class="tab-area-color-spectrum-handle" id="tab-area-color-spectrum-handle" aria-hidden="true"></span>
+              </div>
+              <label class="tab-area-color-hue">
+                <span class="field-label">Hue</span>
+                <input id="tab-area-color-hue-input" type="range" min="0" max="360" step="1" value="0">
+              </label>
+            </div>
+            <div class="tab-area-color-grid">
+              <label class="field">
+                <span class="field-label">R</span>
+                <input id="tab-area-color-r-input" type="number" min="0" max="255" step="1">
+              </label>
+              <label class="field">
+                <span class="field-label">G</span>
+                <input id="tab-area-color-g-input" type="number" min="0" max="255" step="1">
+              </label>
+              <label class="field">
+                <span class="field-label">B</span>
+                <input id="tab-area-color-b-input" type="number" min="0" max="255" step="1">
+              </label>
+            </div>
+          <div class="tab-area-color-tools">
+              <button class="button button-secondary" id="tab-area-color-eyedropper-button" type="button">Eyedropper</button>
+            </div>
+          </div>
+          <label class="field" id="tab-area-fill-opacity-field">
+            <span class="field-label">Transparency</span>
+            <div class="paint-opacity-row">
+              <input id="tab-area-fill-opacity-input" type="range" min="0" max="100" step="1" value="100">
+              <span class="paint-opacity-value" id="tab-area-fill-opacity-value">100%</span>
+            </div>
+          </label>
+          <div class="editor-actions">
+            <button class="button button-secondary" id="tab-area-fill-ok-button" type="button">OK</button>
+            <button class="button button-secondary" id="tab-area-fill-cancel-button" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <label class="check-field">
+        <input id="tab-area-hide-header-input" type="checkbox">
+        Hide top bar in direct view
+      </label>
+      <label class="check-field">
+        <input id="tab-area-hide-border-input" type="checkbox">
+        Hide border in direct view
+      </label>
+      <div class="editor-actions">
+        <button class="button button-secondary" id="tab-area-close-button" type="button">Close</button>
+      </div>
+    </div>
+  </aside>
+
+    <aside class="tab-area-editor-flyout shape-editor-flyout" id="shape-editor-flyout" hidden>
+      <div class="tab-area-editor-flyout-inner">
+        <div class="panel-header">
+          <div>
+            <p class="section-label">Shape</p>
+            <h2 id="shape-editor-title">Edit shape</h2>
+            <p class="field-note" id="shape-editor-subtitle">Shape settings</p>
+          </div>
+        </div>
+        <div class="shape-editor-paint-row">
+          <div class="tab-area-fill-picker" role="group" aria-label="Shape fill">
+            <button class="tab-area-fill-button" id="shape-fill-button" type="button" aria-label="Open shape fill options" aria-expanded="false">
+              <span class="tab-area-fill-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M7 5h10v2H7Zm1 4h8v2H8Zm1 4h6v2H9Zm1 4h4v2h-4Z" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="tab-area-fill-swatch" id="shape-fill-swatch" aria-hidden="true"></span>
+            <span class="tab-area-fill-label">Fill</span>
+          </button>
+        </div>
+        <div class="tab-area-fill-picker" role="group" aria-label="Shape outline">
+          <button class="tab-area-fill-button" id="shape-outline-button" type="button" aria-label="Open shape outline options" aria-expanded="false">
+            <span class="tab-area-fill-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <rect x="5" y="5" width="14" height="14" rx="3" ry="3" fill="none" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </span>
+            <span class="tab-area-fill-swatch" id="shape-outline-swatch" aria-hidden="true"></span>
+            <span class="tab-area-fill-label">Outline</span>
+          </button>
+        </div>
+        </div>
+        <label class="field">
+          <span class="field-label">Outline weight</span>
+          <input id="shape-outline-weight-input" type="number" min="0" max="24" step="1">
+        </label>
+        <div class="field">
+          <span class="field-label">Link</span>
+          <div class="shape-link-picker">
+            <input id="shape-link-input" type="text" placeholder="Page title, page id, or URL">
+            <button class="button button-secondary shape-link-picker-button" id="shape-link-page-button" type="button">Local Page</button>
+            <button class="button button-secondary shape-link-picker-button" id="shape-link-tab-button" type="button">Local Tab</button>
+          </div>
+          <div class="shape-link-page-list" id="shape-link-page-list" hidden></div>
+        </div>
+        <div class="tab-area-fill-panel shape-paint-panel" id="shape-paint-panel" hidden>
+          <div class="shape-paint-panel-header">
+            <p class="section-label" id="shape-paint-target-label">Fill</p>
+            <p class="field-note" id="shape-paint-target-note">Edit the selected shape fill.</p>
+          </div>
+          <div class="tab-area-fill-mode">
+            <label class="tab-area-fill-mode-option">
+              <input type="radio" name="shape-paint-mode" value="solid" checked>
+              <span>Solid fill</span>
+            </label>
+          <label class="tab-area-fill-mode-option">
+            <input type="radio" name="shape-paint-mode" value="gradient">
+            <span>Gradient</span>
+          </label>
+        </div>
+        <div class="tab-area-fill-solid" id="shape-paint-solid-panel"></div>
+        <div class="tab-area-fill-gradient" id="shape-paint-gradient-panel" hidden>
+          <div class="tab-area-gradient-preview" id="shape-paint-gradient-preview" aria-hidden="true"></div>
+          <div class="chart-style-grid">
+            <label class="field">
+              <span class="field-label">Gradient type</span>
+              <select id="shape-paint-gradient-type-input">
+                <option value="linear">Linear</option>
+                <option value="radial">Radial</option>
+              </select>
+            </label>
+            <label class="field" id="shape-paint-gradient-direction-field">
+              <span class="field-label">Direction</span>
+              <select id="shape-paint-gradient-direction-input">
+                <option value="to right">Left to right</option>
+                <option value="to left">Right to left</option>
+                <option value="to bottom">Top to bottom</option>
+                <option value="to top">Bottom to top</option>
+                <option value="to bottom right">Top left to bottom right</option>
+                <option value="to bottom left">Top right to bottom left</option>
+                <option value="to top right">Bottom left to top right</option>
+                <option value="to top left">Bottom right to top left</option>
+              </select>
+            </label>
+          </div>
+          <div class="tab-area-gradient-actions">
+            <button class="button button-secondary tab-area-gradient-action-button" id="shape-paint-add-stop-button" type="button" aria-label="Add stop">+</button>
+            <button class="button button-secondary tab-area-gradient-action-button" id="shape-paint-remove-stop-button" type="button" aria-label="Remove stop" hidden>-</button>
+          </div>
+          <div class="tab-area-gradient-stops" id="shape-paint-gradient-stops"></div>
+        </div>
+        <div class="tab-area-color-popup" id="shape-paint-color-popup" hidden>
+          <div class="tab-area-color-spectrum-wrap">
+            <div class="tab-area-color-spectrum" id="shape-paint-color-spectrum" aria-label="Shape color spectrum" role="application">
+              <span class="tab-area-color-spectrum-handle" id="shape-paint-color-spectrum-handle" aria-hidden="true"></span>
+            </div>
+            <label class="tab-area-color-hue">
+              <span class="field-label">Hue</span>
+              <input id="shape-paint-color-hue-input" type="range" min="0" max="360" step="1" value="0">
+            </label>
+          </div>
+          <div class="tab-area-color-grid">
+            <label class="field">
+              <span class="field-label">R</span>
+              <input id="shape-paint-color-r-input" type="number" min="0" max="255" step="1">
+            </label>
+            <label class="field">
+              <span class="field-label">G</span>
+              <input id="shape-paint-color-g-input" type="number" min="0" max="255" step="1">
+            </label>
+            <label class="field">
+              <span class="field-label">B</span>
+              <input id="shape-paint-color-b-input" type="number" min="0" max="255" step="1">
+            </label>
+          </div>
+          <div class="tab-area-color-tools">
+            <button class="button button-secondary" id="shape-paint-color-eyedropper-button" type="button">Eyedropper</button>
+          </div>
+        </div>
+        <label class="field" id="shape-paint-opacity-field">
+          <span class="field-label">Transparency</span>
+          <div class="paint-opacity-row">
+            <input id="shape-paint-opacity-input" type="range" min="0" max="100" step="1" value="100">
+            <span class="paint-opacity-value" id="shape-paint-opacity-value">100%</span>
+          </div>
+        </label>
+        <div class="editor-actions">
+          <button class="button button-secondary" id="shape-paint-ok-button" type="button">OK</button>
+          <button class="button button-secondary" id="shape-paint-cancel-button" type="button">Cancel</button>
+        </div>
+      </div>
+      <div class="editor-actions">
+        <button class="button button-secondary" id="shape-close-button" type="button">Close</button>
+      </div>
+    </div>
+  </aside>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="saved-chart-embed.js"></script>
+  <script src="top-tabs-settings.js"></script>
   <script type="module" src="firebase-workspace.js"></script>
 </body>
 </html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chart Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="workspace.css">
+  <link rel="stylesheet" href="chart-builder.css">
+  <style id="top-tabs-custom-style"></style>
+  <script src="debug-agent.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="top-tabs-settings.js"></script>
+</head>
+<body class="cb-body">
+  <header class="cb-topbar">
+    <nav class="ws-tabs" aria-label="App sections">
+      <a class="ws-tab" href="index.html">Dashboard Editor</a>
+      <a class="ws-tab is-active" href="chart-builder.html" aria-current="page">Chart Builder</a>
+    </nav>
+    <div class="cb-topbar-actions">
+      <button class="cb-topbar-button cb-primary" id="cb-new-chart" type="button">New chart</button>
+      <button class="cb-topbar-button" id="cb-edit-chart" type="button">Edit saved chart</button>
+      <button class="cb-topbar-button" id="cb-prefs-button" type="button" title="Chart Builder preferences" aria-label="Preferences">⚙</button>
+    </div>
+  </header>
+
+  <div class="cb-layout">
+    <aside class="cb-side-panel" id="cb-side-panel" hidden>
+      <div class="cb-side-panel-header">
+        <p class="section-label">Chart options</p>
+        <button class="cb-side-close" id="cb-side-close" type="button" aria-label="Close panel">×</button>
+      </div>
+      <div class="cb-side-panel-body" id="cb-side-panel-body">
+        <!-- Controls injected by JS -->
+      </div>
+    </aside>
+
+    <main class="cb-canvas" id="cb-canvas">
+      <div class="cb-empty-state" id="cb-empty-state">
+        <section class="cb-empty-section">
+          <h3 class="cb-empty-heading">New chart</h3>
+          <div class="cb-empty-grid" id="cb-empty-new-grid"></div>
+        </section>
+        <div class="cb-empty-divider" aria-hidden="true"></div>
+        <section class="cb-empty-section">
+          <h3 class="cb-empty-heading">Saved charts</h3>
+          <div class="cb-empty-grid" id="cb-empty-saved-grid"></div>
+        </section>
+      </div>
+      <div class="cb-chart-area" id="cb-chart-area" hidden>
+        <div class="cb-chart-wrapper" id="cb-chart-wrapper">
+          <canvas id="cb-chart"></canvas>
+        </div>
+        <div class="cb-chart-actions">
+          <button class="cb-topbar-button cb-primary" id="cb-save-chart" type="button">Save chart</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="dashboard-bottom-bar">
+    <button class="button button-secondary bottom-bar-settings-button" id="bottom-bar-settings-button" type="button">Settings</button>
+  </footer>
+
+  <script src="chart-builder.js"></script>
+</body>
+</html>

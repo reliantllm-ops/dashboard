@@ -30,6 +30,27 @@ modules:
         render: default
         viewportSize: max
         title: Configure bar chart 2 new
+    - key: table-bar-chart-macro-v1
+      resource: table-bar-main-v1
+      render: native
+      title: table bar chart view
+      description: Displays a bar chart using a linked table data source.
+      config:
+        resource: table-bar-cfg1
+        render: default
+        viewportSize: max
+        title: Configure table bar chart view
+    - key: table-data-source-v1
+      resource: table-source-main1
+      render: native
+      title: table data source
+      description: Stores a Confluence table as a reusable chart data source and displays the table in published view.
+      layout: bodied
+      config:
+        resource: table-src-cfg1
+        render: default
+        viewportSize: max
+        title: Configure table data source
 resources:
   - key: forge-main
     path: src/frontend/forge-index.jsx
@@ -37,10 +58,18 @@ resources:
     path: src/frontend/forge-config.jsx
   - key: main
     path: src/frontend/index.jsx
+  - key: table-bar-main-v1
+    path: src/frontend/table-bar-index.jsx
+  - key: table-source-main1
+    path: src/frontend/table-source-index.jsx
   - key: bar-chart-2-config-v2
     path: src/static/bar-chart-2-config
   - key: bar-chart-2-config-v3
     path: src/static/bar-chart-2-config-v3
+  - key: table-bar-cfg1
+    path: src/static/bar-chart-table-config-v1
+  - key: table-src-cfg1
+    path: src/static/table-source-config-v1
   - key: bar-chart-2-frame
     path: src/static/bar-chart-2
 app:

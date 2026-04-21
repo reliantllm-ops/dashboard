@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Table Source Config</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 18px;
+        font-family: Arial, sans-serif;
+        color: #172b4d;
+        background: #ffffff;
+      }
+
+      .title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+
+      .badge {
+        display: inline-flex;
+        margin-bottom: 12px;
+        padding: 4px 8px;
+        border: 1px solid #d0d4db;
+        border-radius: 999px;
+        background: #f7f8f9;
+        color: #5e6c84;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .note {
+        margin-bottom: 16px;
+        color: #44546f;
+        line-height: 1.4;
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 10px;
+      }
+
+      .row label {
+        min-width: 110px;
+      }
+
+      input {
+        font: inherit;
+      }
+
+      .textfield {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #d0d4db;
+        border-radius: 8px;
+      }
+
+      .footer {
+        margin-top: 18px;
+        display: flex;
+        gap: 14px;
+      }
+
+      button {
+        min-width: 96px;
+        min-height: 34px;
+        padding: 8px 14px;
+        border: 1px solid #d0d4db;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+      }
+
+      .status {
+        margin-top: 12px;
+        color: #5e6c84;
+      }
+
+      .status.error {
+        color: #ae2e24;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="title">Table data source configuration</div>
+    <div class="badge">Config build 2.123.0</div>
+    <div class="note">
+      Place a Confluence table inside the macro body. Column 1 is the label and column 2 is the numeric
+      value used by linked charts.
+    </div>
+    <div class="row">
+      <label for="source-key">Source key</label>
+      <input class="textfield" id="source-key" type="text" placeholder="sales-q1" />
+    </div>
+    <div class="row">
+      <label for="source-name">Source name</label>
+      <input class="textfield" id="source-name" type="text" placeholder="Quarterly sales table" />
+    </div>
+    <div class="footer">
+      <button id="save-button" type="button">Save</button>
+      <button id="cancel-button" type="button">Cancel</button>
+    </div>
+    <div class="status" id="status"></div>
+    <script>
+      (() => {
+        const DEFAULTS = { sourceKey: "", sourceName: "" };
+        const qs = (selector) => document.querySelector(selector);
+        const statusEl = qs("#status");
+        let state = { ...DEFAULTS };
+
+        const setStatus = (message, isError = false) => {
+          statusEl.textContent = message || "";
+          statusEl.className = "status" + (isError ? " error" : "");
+        };
+
+        const callBridge = (name, payload) => {
+          if (!window.__bridge || typeof window.__bridge.callBridge !== "function") {
+            throw new Error("Forge bridge unavailable");
+          }
+
+          return window.__bridge.callBridge(name, payload);
+        };
+
+        const render = () => {
+          qs("#source-key").value = state.sourceKey || "";
+          qs("#source-name").value = state.sourceName || "";
+        };
+
+        const load = async () => {
+          try {
+            const context = await callBridge("getContext");
+            state = { ...DEFAULTS, ...(context?.extension?.config || {}) };
+            render();
+          } catch (error) {
+            state = { ...DEFAULTS };
+            render();
+            setStatus(error instanceof Error ? error.message : "Unable to load configuration.", true);
+          }
+        };
+
+        qs("#source-key").addEventListener("input", (event) => {
+          state.sourceKey = event.target.value.trim();
+        });
+
+        qs("#source-name").addEventListener("input", (event) => {
+          state.sourceName = event.target.value.trim();
+        });
+
+        qs("#cancel-button").addEventListener("click", async () => {
+          try {
+            await callBridge("close");
+          } catch (error) {
+            setStatus(error instanceof Error ? error.message : "Unable to close configuration.", true);
+          }
+        });
+
+        qs("#save-button").addEventListener("click", async () => {
+          if (!state.sourceKey) {
+            setStatus("Source key is required.", true);
+            return;
+          }
+
+          try {
+            await callBridge("submit", { config: state });
+          } catch (error) {
+            setStatus(error instanceof Error ? error.message : "Unable to save configuration.", true);
+          }
+        });
+
+        load();
+      })();
+    </script>
+  </body>
+</html>

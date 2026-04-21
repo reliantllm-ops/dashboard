@@ -311,9 +311,15 @@ function renderPageList() {
       return `
         <button class="page-item ${activeClass}" data-page-id="${page.id}" type="button">
           <div class="page-item-header">
-            <div>
+            <div class="page-item-link">
+              <svg class="page-item-icon" aria-hidden="true" viewBox="0 0 16 16" focusable="false">
+                <path d="M3 1.5h6.8L13 4.7v9.8H3V1.5Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+                <path d="M9.8 1.5v3.2H13" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+              </svg>
+              <div>
               <h3>${escapeHtml(page.title)}</h3>
               <p class="page-item-summary">${escapeHtml(page.summary)}</p>
+              </div>
             </div>
             <span class="pill">${escapeHtml(page.category)}</span>
           </div>

@@ -5,7 +5,15 @@
     "serve:test": "node tests/server.js",
     "test:smoke": "playwright test",
     "test:smoke:headed": "playwright test --headed",
-    "test:smoke:ui": "playwright test --ui"
+    "test:smoke:ui": "playwright test --ui",
+    "test:visual": "playwright test tests/workspace-visual.spec.js",
+    "test:visual:update": "playwright test tests/workspace-visual.spec.js --update-snapshots",
+    "test:review": "playwright test tests/workspace-visual.spec.js --headed",
+    "test:confluence:login": "playwright test -c playwright.confluence.config.js tests/confluence-login.setup.js --headed",
+    "test:confluence": "playwright test -c playwright.confluence.config.js",
+    "test:confluence:headed": "playwright test -c playwright.confluence.config.js --headed",
+    "test:confluence:debug": "playwright test -c playwright.confluence.config.js --headed --debug",
+    "test:confluence:attach": "node tests/confluence-attach.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2"

@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="workspace.css">
   <style id="top-tabs-custom-style"></style>
+  <style id="dashboard-editor-custom-style"></style>
   <script src="debug-agent.js"></script>
 </head>
 <body>
@@ -181,17 +182,15 @@
       <div class="panel-header settings-modal-header" id="settings-modal-header">
         <div>
           <p class="section-label">Settings</p>
-          <h2>Workspace settings</h2>
+          <h2>Settings</h2>
         </div>
         <div class="panel-actions">
-          <button class="button button-secondary" id="settings-modal-close-button" type="button">Close</button>
+          <button class="button button-primary" id="settings-modal-ok-button" type="button">OK</button>
+          <button class="button button-secondary" id="settings-modal-close-button" type="button">Cancel</button>
         </div>
       </div>
-      <div class="settings-modal-tabs" role="tablist" aria-label="Settings sections">
-        <button class="settings-modal-tab is-active" id="settings-tab-library" type="button" role="tab" aria-selected="true">Library</button>
-        <button class="settings-modal-tab" id="settings-tab-toptabs" type="button" role="tab" aria-selected="false">Top tabs</button>
-      </div>
-      <div class="settings-modal-panel" id="settings-panel-library">
+      <div class="settings-modal-tabs" id="settings-modal-tabs" role="tablist" aria-label="Settings sections"></div>
+      <div class="settings-modal-panel" id="settings-panel-library" hidden>
         <div class="field">
           <span class="field-label">Selected page style</span>
           <div class="shape-editor-paint-row">
@@ -315,8 +314,14 @@
       </div>
 
       <div class="settings-modal-panel" id="settings-panel-toptabs" hidden>
-        <section class="tt-section">
-          <h3 class="tt-section-title">Words when selected</h3>
+        <div class="tt-subtabs">
+          <button class="tt-subtab is-active" id="tt-subtab-light" type="button">Light mode</button>
+          <button class="tt-subtab" id="tt-subtab-dark" type="button">Dark mode</button>
+        </div>
+        <details class="de-section">
+          <summary class="de-summary">
+            <h3 class="tt-section-title">Words when selected</h3>
+          </summary>
           <div class="tt-grid">
             <label class="tt-field"><span>Color</span><input type="color" id="tt-sel-color"></label>
             <label class="tt-field"><span>Font</span>
@@ -334,10 +339,12 @@
             <label class="tt-field tt-check"><input type="checkbox" id="tt-sel-italic"><span>Italic</span></label>
             <label class="tt-field"><span>Transparency</span><input type="range" id="tt-sel-opacity" min="0" max="100" step="1"></label>
           </div>
-        </section>
+        </details>
 
-        <section class="tt-section">
-          <h3 class="tt-section-title">Words when not selected</h3>
+        <details class="de-section">
+          <summary class="de-summary">
+            <h3 class="tt-section-title">Words when not selected</h3>
+          </summary>
           <div class="tt-grid">
             <label class="tt-field"><span>Color</span><input type="color" id="tt-idle-color"></label>
             <label class="tt-field"><span>Font</span>
@@ -355,13 +362,165 @@
             <label class="tt-field tt-check"><input type="checkbox" id="tt-idle-italic"><span>Italic</span></label>
             <label class="tt-field"><span>Transparency</span><input type="range" id="tt-idle-opacity" min="0" max="100" step="1"></label>
           </div>
-        </section>
+        </details>
 
-        <section class="tt-section">
-          <h3 class="tt-section-title">Underline</h3>
+        <details class="de-section">
+          <summary class="de-summary">
+            <h3 class="tt-section-title">Underline</h3>
+          </summary>
           <div class="tt-grid">
             <label class="tt-field"><span>Color</span><input type="color" id="tt-underline-color"></label>
             <label class="tt-field"><span>Width</span><input type="number" id="tt-underline-width" min="0" max="10" step="1"></label>
+          </div>
+        </details>
+        <details class="de-section">
+          <summary class="de-summary">
+            <h3 class="tt-section-title">Bar</h3>
+          </summary>
+          <div class="tt-grid">
+            <label class="tt-field"><span>Background color</span><input type="color" id="tt-bar-background"></label>
+          </div>
+        </details>
+      </div>
+
+      <div class="settings-modal-panel" id="settings-panel-dashboard-editor" hidden>
+        <div class="tt-subtabs" style="align-items:center;">
+          <button class="tt-subtab is-active" id="de-mode-light" type="button">Light mode</button>
+          <button class="tt-subtab" id="de-mode-dark" type="button">Dark mode</button>
+          <button class="tt-subtab" id="de-mode-defaults" type="button">Defaults</button>
+        </div>
+        <div id="de-defaults-panel" hidden style="padding:12px 4px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <button class="button button-secondary" id="de-restore-defaults" type="button">Restore defaults</button>
+            <button class="button button-secondary" id="de-save-defaults" type="button">Save as default</button>
+          </div>
+          <h4 style="margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6a7280;">Archived defaults</h4>
+          <div id="de-archive-list" style="border:1px solid #e3e5e8;border-radius:8px;padding:6px;max-height:260px;overflow:auto;"></div>
+        </div>
+        <div class="tt-subtabs">
+          <button class="tt-subtab is-active" id="de-subtab-left" type="button">Left panel</button>
+          <button class="tt-subtab" id="de-subtab-center" type="button">Center panel</button>
+          <button class="tt-subtab" id="de-subtab-right" type="button">Right panel</button>
+        </div>
+        <div class="de-subpanel" id="de-subpanel-left">
+          <details class="de-section" open>
+            <summary class="de-summary">
+              <h3 class="tt-section-title">Canvas</h3>
+            </summary>
+            <div class="tt-grid">
+              <label class="tt-field"><span>Background</span><input type="color" id="de-left-background"></label>
+              <label class="tt-field"><span>Border color</span><input type="color" id="de-left-border"></label>
+            </div>
+          </details>
+          <details class="de-section" open>
+            <summary class="de-summary">
+              <h3 class="tt-section-title">Library panel</h3>
+            </summary>
+            <div class="tt-grid">
+              <label class="tt-field"><span>Background</span><input type="color" id="de-libpanel-background"></label>
+              <label class="tt-field"><span>Border color</span><input type="color" id="de-libpanel-border"></label>
+            </div>
+          </details>
+        </div>
+
+        <div class="de-subpanel" id="de-subpanel-center" hidden>
+          <details class="de-section">
+            <summary class="de-summary">
+              <h3 class="tt-section-title">Canvas</h3>
+            </summary>
+            <div class="tt-grid">
+              <label class="tt-field"><span>Background</span><input type="color" id="de-center-background"></label>
+              <label class="tt-field"><span>Border color</span><input type="color" id="de-center-border"></label>
+            </div>
+          </details>
+
+          <details class="de-section">
+            <summary class="de-summary">
+              <h3 class="tt-section-title">Title</h3>
+            </summary>
+            <div class="tt-grid">
+              <label class="tt-field"><span>Color</span><input type="color" id="de-title-color"></label>
+              <label class="tt-field"><span>Font</span>
+                <select id="de-title-font">
+                  <option value="'Space Grotesk', system-ui, sans-serif">Space Grotesk</option>
+                  <option value="Arial, sans-serif">Arial</option>
+                  <option value="'Times New Roman', serif">Times New Roman</option>
+                  <option value="Georgia, serif">Georgia</option>
+                  <option value="'Courier New', monospace">Courier New</option>
+                  <option value="Verdana, sans-serif">Verdana</option>
+                </select>
+              </label>
+              <label class="tt-field"><span>Font size</span><input type="number" id="de-title-size" min="18" max="72" step="1"></label>
+              <label class="tt-field tt-check"><input type="checkbox" id="de-title-bold"><span>Bold</span></label>
+              <label class="tt-field tt-check"><input type="checkbox" id="de-title-italic"><span>Italic</span></label>
+            </div>
+          </details>
+
+          <details class="de-section">
+            <summary class="de-summary">
+              <h3 class="tt-section-title">Body</h3>
+            </summary>
+            <div class="tt-grid">
+              <label class="tt-field"><span>Color</span><input type="color" id="de-body-color"></label>
+              <label class="tt-field"><span>Font</span>
+                <select id="de-body-font">
+                  <option value="'Space Grotesk', system-ui, sans-serif">Space Grotesk</option>
+                  <option value="Arial, sans-serif">Arial</option>
+                  <option value="'Times New Roman', serif">Times New Roman</option>
+                  <option value="Georgia, serif">Georgia</option>
+                  <option value="'Courier New', monospace">Courier New</option>
+                  <option value="Verdana, sans-serif">Verdana</option>
+                </select>
+              </label>
+              <label class="tt-field"><span>Font size</span><input type="number" id="de-body-size" min="10" max="36" step="1"></label>
+              <label class="tt-field"><span>Line height</span><input type="number" id="de-body-line-height" min="1" max="2.4" step="0.05"></label>
+              <label class="tt-field tt-check"><input type="checkbox" id="de-body-bold"><span>Bold</span></label>
+              <label class="tt-field tt-check"><input type="checkbox" id="de-body-italic"><span>Italic</span></label>
+            </div>
+          </details>
+          <details class="de-section">
+            <summary class="de-summary">
+              <h3 class="tt-section-title">Tab Area</h3>
+            </summary>
+            <div class="tt-grid">
+              <label class="tt-field"><span>Header background</span><input type="color" id="de-tabarea-header-background"></label>
+              <label class="tt-field"><span>Header border</span><input type="color" id="de-tabarea-header-border"></label>
+              <label class="tt-field"><span>Idle tab text</span><input type="color" id="de-tabarea-tab-idle-color"></label>
+              <label class="tt-field"><span>Active tab background</span><input type="color" id="de-tabarea-tab-active-background"></label>
+              <label class="tt-field"><span>Active tab text</span><input type="color" id="de-tabarea-tab-active-color"></label>
+              <label class="tt-field"><span>Button background</span><input type="color" id="de-tabarea-button-background"></label>
+              <label class="tt-field"><span>Button text</span><input type="color" id="de-tabarea-button-color"></label>
+            </div>
+          </details>
+        </div>
+
+        <div class="de-subpanel" id="de-subpanel-right" hidden>
+          <details class="de-section">
+            <summary class="de-summary">
+              <h3 class="tt-section-title">Canvas</h3>
+            </summary>
+            <div class="tt-grid">
+              <label class="tt-field"><span>Background</span><input type="color" id="de-right-background"></label>
+              <label class="tt-field"><span>Border color</span><input type="color" id="de-right-border"></label>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="settings-modal-panel" id="settings-panel-saved-states" hidden>
+        <section class="tt-section">
+          <h3 class="tt-section-title">Saved States</h3>
+          <p style="margin:0 0 10px;font-size:11px;color:#6a7280;">Snapshots of Top bar and Chart Builder settings.</p>
+          <button class="button button-primary" id="ss-save-current" type="button">Save current</button>
+          <div id="ss-list" style="margin-top:12px;"></div>
+        </section>
+      </div>
+
+      <div class="settings-modal-panel" id="settings-panel-global" hidden>
+        <section class="tt-section">
+          <h3 class="tt-section-title">Theme</h3>
+          <div class="tt-grid">
+            <label class="tt-field tt-check"><input type="checkbox" id="gs-dark"><span>Dark mode</span></label>
           </div>
         </section>
       </div>
@@ -738,7 +897,11 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="saved-chart-embed.js"></script>
+  <script src="settings.js"></script>
   <script src="top-tabs-settings.js"></script>
+  <script src="dashboard-editor-settings.js"></script>
+  <script src="global-settings.js"></script>
+  <script src="saved-states-settings.js"></script>
   <script type="module" src="firebase-workspace.js"></script>
 </body>
 </html>

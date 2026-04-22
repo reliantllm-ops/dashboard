@@ -19,6 +19,34 @@
   function savePrefs(p) { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); }
   let prefs = loadPrefs();
 
+  // User overrides to apply to every NEW chart, split by mode.
+  const NEW_DEFAULTS_KEY = 'cb_new_chart_defaults_v1';
+  function loadAllNewDefaults() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(NEW_DEFAULTS_KEY) || '{}') || {};
+      // Back-compat: legacy flat {chartFormat, lineFormat} stored as single config
+      if (raw.light || raw.dark) return { light: raw.light || {}, dark: raw.dark || {} };
+      return { light: raw, dark: {} };
+    } catch { return { light: {}, dark: {} }; }
+  }
+  function saveAllNewDefaults(v) { localStorage.setItem(NEW_DEFAULTS_KEY, JSON.stringify(v)); }
+  function isDarkActive() { return document.body && document.body.classList.contains('dark-mode'); }
+  function loadNewDefaults(mode) {
+    const all = loadAllNewDefaults();
+    return all[mode || (isDarkActive() ? 'dark' : 'light')] || {};
+  }
+  // Merge user defaults on top of a fresh state.
+  function applyNewDefaults(s, mode) {
+    const nd = loadNewDefaults(mode);
+    if (nd.chartFormat) {
+      s.chartFormat = { ...(s.chartFormat || {}), ...JSON.parse(JSON.stringify(nd.chartFormat)) };
+    }
+    if (nd.lineFormat && s.lineFormat) {
+      s.lineFormat = { ...s.lineFormat, ...JSON.parse(JSON.stringify(nd.lineFormat)) };
+    }
+    return s;
+  }
+
   function applyDarkToState(s) {
     // Mutate state to use dark-theme palette
     if (!s.chartFormat) s.chartFormat = {};
@@ -46,13 +74,11 @@
     { id: 'column',    label: 'Column chart' },
     { id: 'grouped',   label: 'Grouped bar chart' },
     { id: 'stacked',   label: 'Stacked bar chart' },
-    { id: 'line',      label: 'Line chart' },
     { id: 'area',      label: 'Area chart' },
     { id: 'pie',       label: 'Pie chart' },
     { id: 'donut',     label: 'Donut chart' },
     { id: 'scatter',   label: 'Scatter plot' },
     { id: 'bubble',    label: 'Bubble chart' },
-    { id: 'radar',     label: 'Radar chart' },
     { id: 'histogram', label: 'Histogram' },
   ];
 
@@ -92,21 +118,21 @@
 
   const defaults = {
     bar: {
-      title: 'Untitled bar chart',
+      title: 'Bar Chart',
       labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
       values: [12, 19, 7, 14, 22],
       color: '#3f6ad8',
       lineFormat: defaultLineFormat(),
     },
     column: {
-      title: 'Untitled column chart',
+      title: 'Column Chart',
       labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
       values: [12, 19, 7, 14, 22],
       color: '#3f6ad8',
       lineFormat: defaultLineFormat(),
     },
     grouped: {
-      title: 'Untitled grouped bar chart',
+      title: 'Grouped Bar Chart',
       labels: ['Jan', 'Feb', 'Mar', 'Apr'],
       series: [
         { label: 'Series A', values: [12, 19, 7, 14], color: '#3f6ad8' },
@@ -115,7 +141,7 @@
       lineFormat: defaultLineFormat(),
     },
     stacked: {
-      title: 'Untitled stacked bar chart',
+      title: 'Stacked Bar Chart',
       labels: ['Jan', 'Feb', 'Mar', 'Apr'],
       series: [
         { label: 'Series A', values: [12, 19, 7, 14], color: '#3f6ad8' },
@@ -124,35 +150,35 @@
       lineFormat: defaultLineFormat(),
     },
     line: {
-      title: 'Untitled line chart',
+      title: 'Line Chart',
       labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
       values: [12, 19, 7, 14, 22],
       color: '#3f6ad8',
       lineFormat: { ...defaultLineFormat(), fillMode: 'none' },
     },
     area: {
-      title: 'Untitled area chart',
+      title: 'Area Chart',
       labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
       values: [12, 19, 7, 14, 22],
       color: '#3f6ad8',
       lineFormat: { ...defaultLineFormat(), fillMode: 'gradient' },
     },
     pie: {
-      title: 'Untitled pie chart',
+      title: 'Pie Chart',
       labels: ['Alpha', 'Beta', 'Gamma', 'Delta'],
       values: [30, 25, 25, 20],
       color: '#3f6ad8',
       lineFormat: defaultLineFormat(),
     },
     donut: {
-      title: 'Untitled donut chart',
+      title: 'Donut Chart',
       labels: ['Alpha', 'Beta', 'Gamma', 'Delta'],
       values: [30, 25, 25, 20],
       color: '#3f6ad8',
       lineFormat: defaultLineFormat(),
     },
     scatter: {
-      title: 'Untitled scatter plot',
+      title: 'Scatter Plot',
       points: [
         { x: 1, y: 5 }, { x: 2, y: 8 }, { x: 3, y: 6 }, { x: 4, y: 10 },
         { x: 5, y: 7 }, { x: 6, y: 12 }, { x: 7, y: 9 }, { x: 8, y: 14 },
@@ -161,7 +187,7 @@
       lineFormat: defaultLineFormat(),
     },
     bubble: {
-      title: 'Untitled bubble chart',
+      title: 'Bubble Chart',
       points: [
         { x: 1, y: 5, r: 8 }, { x: 2, y: 8, r: 12 }, { x: 3, y: 6, r: 6 },
         { x: 4, y: 10, r: 14 }, { x: 5, y: 7, r: 10 }, { x: 6, y: 12, r: 16 },
@@ -170,14 +196,14 @@
       lineFormat: defaultLineFormat(),
     },
     radar: {
-      title: 'Untitled radar chart',
+      title: 'Radar Chart',
       labels: ['Speed', 'Reliability', 'Comfort', 'Safety', 'Efficiency'],
       values: [65, 59, 90, 81, 56],
       color: '#3f6ad8',
       lineFormat: defaultLineFormat(),
     },
     histogram: {
-      title: 'Untitled histogram',
+      title: 'Histogram',
       labels: ['0-10', '10-20', '20-30', '30-40', '40-50', '50-60', '60-70'],
       values: [3, 7, 14, 22, 16, 9, 4],
       color: '#3f6ad8',
@@ -188,6 +214,26 @@
   function openPanel() {
     sidePanel.hidden = false;
     layout.classList.add('cb-panel-open');
+  }
+
+  function applySplashCardAppearance(card, preview, name) {
+    const cfg = typeof window.getSplashCardStyleConfig === 'function'
+      ? window.getSplashCardStyleConfig()
+      : null;
+    if (!cfg) return;
+    if (card) {
+      card.style.background = cfg.background;
+      card.style.border = `${cfg.borderWidth}px solid ${cfg.borderColor}`;
+    }
+    if (preview) {
+      preview.style.background = cfg.frameBackground;
+      preview.style.border = `${cfg.frameBorderWidth}px solid ${cfg.frameBorderColor}`;
+      preview.style.borderRadius = `${cfg.frameRadius}px`;
+    }
+    if (name) {
+      name.style.color = cfg.labelColor;
+      name.style.fontSize = `${cfg.labelSize}px`;
+    }
   }
 
   function closePanel() {
@@ -368,9 +414,11 @@
     } else {
       const dataset = { label: title, data: values };
       if (type === 'donut' || type === 'pie') {
-        dataset.backgroundColor = buildPalette(color, values.length);
-        dataset.borderColor = '#ffffff';
-        dataset.borderWidth = 2;
+        const pieColors = ['#3f6ad8', '#e97132'];
+        const alpha = lineFormat?.fillOpacity ?? 0.2;
+        dataset.backgroundColor = values.map((_, i) => hexWithAlpha(pieColors[i % pieColors.length], alpha));
+        dataset.borderColor = pieColors.map((c, i) => pieColors[i % pieColors.length]);
+        dataset.borderWidth = 1;
       } else if (type === 'radar') {
         dataset.borderColor = color;
         dataset.backgroundColor = hexWithAlpha(color, lineFormat.fillOpacity ?? 0.3);
@@ -1970,16 +2018,29 @@
   }
 
   function newChart(type) {
-    state = { type, ...JSON.parse(JSON.stringify(defaults[type])) };
-    if (prefs.darkDefaults) applyDarkToState(state);
+    const templates = loadTemplates();
+    if (templates[type]) {
+      state = JSON.parse(JSON.stringify(templates[type]));
+      state.type = type;
+    } else {
+      state = { type, ...JSON.parse(JSON.stringify(defaults[type])) };
+      if (prefs.darkDefaults) applyDarkToState(state);
+      applyNewDefaults(state);
+    }
     openPanel();
     buildControls();
     renderChart();
   }
 
   document.getElementById('cb-new-chart').addEventListener('click', openNewChartDialog);
-  const prefsBtn = document.getElementById('cb-prefs-button');
-  if (prefsBtn) prefsBtn.addEventListener('click', openPrefsPopup);
+
+  // Keep prefs synced with the shared Settings module if present.
+  if (window.Settings && typeof window.Settings.onChange === 'function') {
+    window.Settings.onChange('cb_prefs_v1', (v) => {
+      if (v) prefs = { ...prefs, ...v };
+      populateEmptyGrids();
+    });
+  }
 
   function openPrefsPopup() {
     document.querySelectorAll('.cb-prefs-popup').forEach(el => el.remove());
@@ -2041,8 +2102,14 @@
       canvas.width = 320; canvas.height = 200;
       canvas.className = 'cb-saved-card-canvas';
       preview.appendChild(canvas);
-      const sampleState = { type: t.id, ...JSON.parse(JSON.stringify(defaults[t.id])) };
-      if (prefs.darkDefaults) applyDarkToState(sampleState);
+      const templates = loadTemplates();
+      const sampleState = templates[t.id]
+        ? (() => { const s = JSON.parse(JSON.stringify(templates[t.id])); s.type = t.id; return s; })()
+        : { type: t.id, ...JSON.parse(JSON.stringify(defaults[t.id])) };
+      if (!templates[t.id]) {
+        if (prefs.darkDefaults) applyDarkToState(sampleState);
+        applyNewDefaults(sampleState);
+      }
       setTimeout(() => { try { renderThumbnail(canvas, sampleState); } catch {} }, 0);
       preview.addEventListener('click', () => newChart(t.id));
       const footer = document.createElement('div');
@@ -2050,6 +2117,7 @@
       const name = document.createElement('span');
       name.className = 'cb-saved-card-name';
       name.textContent = t.label;
+      applySplashCardAppearance(card, preview, name);
       footer.appendChild(name);
       card.appendChild(preview);
       card.appendChild(footer);
@@ -2091,6 +2159,7 @@
         const name = document.createElement('span');
         name.className = 'cb-saved-card-name';
         name.textContent = item.name;
+        applySplashCardAppearance(card, preview, name);
         footer.appendChild(name);
         card.appendChild(preview);
         card.appendChild(footer);
@@ -2098,6 +2167,55 @@
       });
   }
   document.getElementById('cb-save-chart').addEventListener('click', saveCurrentChart);
+  document.getElementById('cb-save-chart').addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    openSaveContextMenu(e.clientX, e.clientY);
+  });
+
+  const TEMPLATES_KEY = 'cb_templates_v1';
+  function loadTemplates() {
+    try { return JSON.parse(localStorage.getItem(TEMPLATES_KEY) || '{}') || {}; }
+    catch { return {}; }
+  }
+  function saveTemplates(t) { localStorage.setItem(TEMPLATES_KEY, JSON.stringify(t)); }
+
+  function saveAsTemplate() {
+    if (!state || !state.type) {
+      alert('Create a chart first.');
+      return;
+    }
+    const templates = loadTemplates();
+    templates[state.type] = JSON.parse(JSON.stringify(state));
+    saveTemplates(templates);
+    populateEmptyGrids();
+  }
+
+  function openSaveContextMenu(x, y) {
+    document.querySelectorAll('.cb-ctx-menu').forEach(el => el.remove());
+    const menu = document.createElement('div');
+    menu.className = 'cb-ctx-menu';
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'cb-ctx-item';
+    item.textContent = 'Save as Template';
+    item.addEventListener('click', () => {
+      menu.remove();
+      saveAsTemplate();
+    });
+    menu.appendChild(item);
+    document.body.appendChild(menu);
+    setTimeout(() => {
+      const off = (ev) => {
+        if (!menu.contains(ev.target)) {
+          menu.remove();
+          document.removeEventListener('mousedown', off);
+        }
+      };
+      document.addEventListener('mousedown', off);
+    }, 0);
+  }
   document.getElementById('cb-edit-chart').addEventListener('click', openEditChartDialog);
   sideCloseBtn.addEventListener('click', closePanel);
 
@@ -2183,8 +2301,14 @@
       preview.appendChild(thumbCanvas);
 
       // Sample state for this type using defaults
-      const sampleState = { type: t.id, ...JSON.parse(JSON.stringify(defaults[t.id])) };
-      if (prefs.darkDefaults) applyDarkToState(sampleState);
+      const templates = loadTemplates();
+      const sampleState = templates[t.id]
+        ? (() => { const s = JSON.parse(JSON.stringify(templates[t.id])); s.type = t.id; return s; })()
+        : { type: t.id, ...JSON.parse(JSON.stringify(defaults[t.id])) };
+      if (!templates[t.id]) {
+        if (prefs.darkDefaults) applyDarkToState(sampleState);
+        applyNewDefaults(sampleState);
+      }
       setTimeout(() => {
         try { renderThumbnail(thumbCanvas, sampleState); } catch {}
       }, 0);
@@ -2343,8 +2467,10 @@
     } else {
       const dataset = { label: title, data: values };
       if (type === 'donut' || type === 'pie') {
-        dataset.backgroundColor = buildPalette(color, values.length);
-        dataset.borderColor = '#ffffff';
+        const pieColors = ['#3f6ad8', '#e97132'];
+        const alpha = lineFormat?.fillOpacity ?? 0.2;
+        dataset.backgroundColor = values.map((_, i) => hexWithAlpha(pieColors[i % pieColors.length], alpha));
+        dataset.borderColor = pieColors.map((_, i) => pieColors[i % pieColors.length]);
         dataset.borderWidth = 1;
       } else if (type === 'radar') {
         dataset.borderColor = color;
@@ -2456,4 +2582,59 @@
   }
 
   populateEmptyGrids();
+  // Expose so Settings can refresh the splash after clearing templates.
+  window.populateEmptyGrids = populateEmptyGrids;
+
+  // Preview-size persistence (slider lives in Settings → Chart Builder → Other)
+  const SIZE_KEY = 'cb_preview_size_v1';
+  (function applyInitialSize() {
+    const saved = parseInt(localStorage.getItem(SIZE_KEY), 10);
+    const initial = !isNaN(saved) ? saved : 200;
+    document.documentElement.style.setProperty('--cb-card-size', `${initial}px`);
+  })();
+  window.bindCbPreviewSizeSlider = function () {
+    const el = document.getElementById('cb-preview-size');
+    if (!el) return;
+    const saved = parseInt(localStorage.getItem(SIZE_KEY), 10);
+    el.value = !isNaN(saved) ? saved : 200;
+    if (el.dataset.sizeBound === '1') return;
+    el.dataset.sizeBound = '1';
+    el.addEventListener('input', () => {
+      const v = parseInt(el.value, 10) || 200;
+      document.documentElement.style.setProperty('--cb-card-size', `${v}px`);
+      localStorage.setItem(SIZE_KEY, String(v));
+    });
+  };
+
+  // Expose a mount for the New-chart-defaults editor used by Settings.
+  window.mountNewChartDefaultsEditor = function (container, mode) {
+    if (!container) return;
+    mode = mode || (isDarkActive() ? 'dark' : 'light');
+    container.innerHTML = '';
+    const sampleType = 'bar';
+    const synthState = { type: sampleType, ...JSON.parse(JSON.stringify(defaults[sampleType])) };
+    applyNewDefaults(synthState, mode);
+
+    const prevState = state;
+    state = synthState;
+    try {
+      container.appendChild(buildBackgroundAxisSection());
+      container.appendChild(buildLinePlotFormatSection());
+    } finally {
+      state = prevState;
+    }
+
+    function persist() {
+      const all = loadAllNewDefaults();
+      all[mode] = {
+        chartFormat: synthState.chartFormat,
+        lineFormat: synthState.lineFormat,
+      };
+      saveAllNewDefaults(all);
+      populateEmptyGrids();
+    }
+    container.addEventListener('input', persist, true);
+    container.addEventListener('change', persist, true);
+    container.addEventListener('click', () => setTimeout(persist, 0), true);
+  };
 })();

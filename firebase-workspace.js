@@ -4911,12 +4911,16 @@ function renderSettingsModal() {
   elements.settingsModalBackdrop.hidden = !settingsModalState.open;
   elements.settingsModal.style.left = `${settingsModalState.x}px`;
   elements.settingsModal.style.top = `${settingsModalState.y}px`;
-  elements.settingsTabLibrary.classList.toggle("is-active", settingsModalState.tab === "library");
-  elements.settingsTabLibrary.setAttribute("aria-selected", settingsModalState.tab === "library" ? "true" : "false");
-  elements.settingsTabToptabs.classList.toggle("is-active", settingsModalState.tab === "toptabs");
-  elements.settingsTabToptabs.setAttribute("aria-selected", settingsModalState.tab === "toptabs" ? "true" : "false");
-  elements.settingsPanelLibrary.hidden = settingsModalState.tab !== "library";
-  elements.settingsPanelToptabs.hidden = settingsModalState.tab !== "toptabs";
+  if (elements.settingsTabLibrary) {
+    elements.settingsTabLibrary.classList.toggle("is-active", settingsModalState.tab === "library");
+    elements.settingsTabLibrary.setAttribute("aria-selected", settingsModalState.tab === "library" ? "true" : "false");
+  }
+  if (elements.settingsTabToptabs) {
+    elements.settingsTabToptabs.classList.toggle("is-active", settingsModalState.tab === "toptabs");
+    elements.settingsTabToptabs.setAttribute("aria-selected", settingsModalState.tab === "toptabs" ? "true" : "false");
+  }
+  // Panel visibility is now owned by Settings module, but keep hidden sync for old paths.
+  // The Settings module re-hides non-active panels on selectTab.
   const data = previewLibrarySelectionStyle();
   elements.libraryFillSwatch.style.background = paintCssValue(data.fillMode, data.fillColor, data.fillGradientStops, data.fillOpacity, data.fillGradientType, data.fillGradientDirection);
   elements.libraryOutlineSwatch.style.background = paintCssValue(data.outlineMode, data.outlineColor, data.outlineGradientStops, data.outlineOpacity, data.outlineGradientType, data.outlineGradientDirection);
@@ -6351,7 +6355,15 @@ elements.generateContentButton.addEventListener("click", () => {
   loadExampleContentIntoEditor();
 });
 
-elements.createTabAreaButton.addEventListener("click", () => {
+elements.createTabAreaButton.addEventListener("click", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  settingsModalState.open = false;
+  closeLibraryPaintPanel();
+  renderSettingsModal();
+  if (window.Settings && typeof window.Settings.close === "function") {
+    window.Settings.close();
+  }
   toggleTabAreaDrawMode();
 });
 
@@ -6363,6 +6375,10 @@ elements.bottomBarSettingsButton.addEventListener("click", () => {
   settingsModalState.open = true;
   clampSettingsModalPosition(settingsModalState.x, settingsModalState.y);
   renderSettingsModal();
+  // Delegate tab management to the Settings module if present.
+  if (window.Settings && typeof window.Settings.open === 'function') {
+    window.Settings.open(settingsModalState.tab || 'library');
+  }
 });
 elements.settingsModalHeader.addEventListener("pointerdown", (event) => {
   if (!(event.target instanceof Element) || event.target.closest("button, input, select, textarea, label")) {
@@ -6386,14 +6402,19 @@ elements.settingsModalBackdrop.addEventListener("click", () => {
   closeLibraryPaintPanel();
   renderSettingsModal();
 });
-elements.settingsTabLibrary.addEventListener("click", () => {
-  settingsModalState.tab = "library";
-  renderSettingsModal();
-});
-elements.settingsTabToptabs.addEventListener("click", () => {
-  settingsModalState.tab = "toptabs";
-  renderSettingsModal();
-});
+// Tab click handlers are owned by Settings module; legacy no-ops guarded below.
+if (elements.settingsTabLibrary) {
+  elements.settingsTabLibrary.addEventListener("click", () => {
+    settingsModalState.tab = "library";
+    renderSettingsModal();
+  });
+}
+if (elements.settingsTabToptabs) {
+  elements.settingsTabToptabs.addEventListener("click", () => {
+    settingsModalState.tab = "toptabs";
+    renderSettingsModal();
+  });
+}
 
 elements.chartMenuTrigger.addEventListener("click", () => {
   toggleChartMenu();

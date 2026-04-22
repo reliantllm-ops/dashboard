@@ -5,8 +5,8 @@
   --text: #172b4d;
   --muted: #5e6c84;
   --line: #dfe1e6;
-  --accent: #0c66e4;
-  --accent-deep: #0055cc;
+  --accent: #6a7280;
+  --accent-deep: #4b5159;
   --shadow: none;
 }
 
@@ -149,9 +149,9 @@ body.sidebar-minimized .workspace-shell {
 .sidebar-panel {
   width: 100%;
   padding: 10px;
-  border: 0;
-  background: transparent;
-  border-radius: 0;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  border-radius: 6px;
 }
 
 .panel-header-actions {
@@ -2452,6 +2452,80 @@ body.workspace-home-mode .workspace-grid {
   }
 }
 
+/* ----- Saved States list ----- */
+.ss-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid #e3e5e8;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  background: #ffffff;
+}
+
+.ss-row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ss-row-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2328;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ss-row-meta {
+  font-size: 11px;
+  color: #6a7280;
+}
+
+.ss-row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ss-row-actions .button {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.ss-delete:hover {
+  background: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+  color: #b91c1c !important;
+}
+
+/* ----- Top bar sub-tabs (Light/Dark) ----- */
+.tt-subtabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e3e5e8;
+  padding-bottom: 6px;
+}
+
+.tt-subtab {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border: 1px solid #d5d9de;
+  background: #ffffff;
+  color: #6a7280;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.tt-subtab.is-active {
+  background: #1f2328;
+  color: #ffffff;
+  border-color: #1f2328;
+}
+
 /* ----- Top tabs settings panel ----- */
 .tt-section {
   padding: 12px 0;
@@ -2469,6 +2543,52 @@ body.workspace-home-mode .workspace-grid {
   font-weight: 600;
   color: #1f2328;
   letter-spacing: 0.02em;
+}
+
+.de-section {
+  padding: 12px 0;
+  border-bottom: 1px solid #e3e5e8;
+}
+
+.de-section:last-child {
+  border-bottom: none;
+}
+
+.de-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.de-summary::-webkit-details-marker {
+  display: none;
+}
+
+.de-summary::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #6a7280;
+  border-bottom: 2px solid #6a7280;
+  transform: rotate(45deg);
+  transition: transform 140ms ease;
+  margin-right: 4px;
+}
+
+.de-section[open] > .de-summary {
+  margin-bottom: 10px;
+}
+
+.de-section[open] > .de-summary::after {
+  transform: rotate(225deg);
+}
+
+.de-summary .tt-section-title {
+  margin: 0;
 }
 
 .tt-grid {

@@ -106,6 +106,16 @@
       userAgent: navigator.userAgent,
       elements: sels.map(describe),
       localStorageKeys: Object.keys(localStorage),
+      styles: {
+        dashboardEditor: (document.getElementById('dashboard-editor-custom-style') || {}).textContent || null,
+        globalDark: (document.getElementById('global-dark-style') || {}).textContent || null,
+        topTabs: (document.getElementById('top-tabs-custom-style') || {}).textContent || null,
+      },
+      bodyClass: document.body ? document.body.className : null,
+      dashboardEditorState: (() => {
+        try { return JSON.parse(localStorage.getItem('dashboard_editor_style_v3') || 'null'); }
+        catch { return null; }
+      })(),
     };
     post('/snapshot', payload);
   }

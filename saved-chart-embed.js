@@ -146,9 +146,11 @@
     } else {
       const dataset = { label: title, data: values };
       if (type === 'donut' || type === 'pie') {
-        dataset.backgroundColor = buildPalette(color, values.length);
-        dataset.borderColor = '#ffffff';
-        dataset.borderWidth = 2;
+        const pieColors = ['#3f6ad8', '#e97132'];
+        const alpha = lineFormat?.fillOpacity ?? 0.2;
+        dataset.backgroundColor = values.map((_, i) => hexWithAlpha(pieColors[i % pieColors.length], alpha));
+        dataset.borderColor = pieColors.map((_, i) => pieColors[i % pieColors.length]);
+        dataset.borderWidth = 1;
       } else if (type === 'radar') {
         dataset.borderColor = color;
         dataset.backgroundColor = hexWithAlpha(color, lineFormat?.fillOpacity ?? 0.3);
